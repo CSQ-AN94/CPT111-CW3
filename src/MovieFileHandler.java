@@ -47,23 +47,23 @@ public class MovieFileHandler {
                         movies.add(movie);
                     }
                 } catch (NumberFormatException e) {
-                    System.err.println("Warning: Invalid data format in line: " + line);
+                    System.out.println("Warning: Invalid data format in line: " + line);
                 }
             }
 
             System.out.println("Successfully loaded " + movies.size() + " movies.");
 
         } catch (FileNotFoundException e) {
-            System.err.println("Error: Movies file not found - " + filename);
+            System.out.println("Error: Movies file not found - " + filename);
         } catch (IOException e) {
-            System.err.println("Error reading movies file: " + e.getMessage());
+            System.out.println("Error reading movies file: " + e.getMessage());
         } finally {
             // 关闭文件流
             if (br != null) {
                 try {
                     br.close();
                 } catch (IOException e) {
-                    System.err.println("Error closing file: " + e.getMessage());
+                    System.out.println("Error closing file: " + e.getMessage());
                 }
             }
         }
