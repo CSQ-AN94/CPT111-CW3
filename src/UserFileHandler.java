@@ -61,22 +61,22 @@ public class UserFileHandler {
                         users.add(user);
                     }
                 } catch (NumberFormatException e) {
-                    System.err.println("Warning: Invalid data format in line: " + line);
+                    System.out.println("Warning: Invalid data format in line: " + line);
                 }
             }
 
             System.out.println("Successfully loaded " + users.size() + " users.");
 
         } catch (FileNotFoundException e) {
-            System.err.println("Error: Users file not found - " + filename);
+            System.out.println("Error: Users file not found - " + filename);
         } catch (IOException e) {
-            System.err.println("Error reading users file: " + e.getMessage());
+            System.out.println("Error reading users file: " + e.getMessage());
         } finally {
             if (br != null) {
                 try {
                     br.close();
                 } catch (IOException e) {
-                    System.err.println("Error closing file: " + e.getMessage());
+                    System.out.println("Error closing file: " + e.getMessage());
                 }
             }
         }
@@ -114,13 +114,13 @@ public class UserFileHandler {
             System.out.println("Successfully saved " + users.size() + " users.");
 
         } catch (IOException e) {
-            System.err.println("Error saving users file: " + e.getMessage());
+            System.out.println("Error saving users file: " + e.getMessage());
         } finally {
             if (bw != null) {
                 try {
                     bw.close();
                 } catch (IOException e) {
-                    System.err.println("Error closing file: " + e.getMessage());
+                    System.out.println("Error closing file: " + e.getMessage());
                 }
             }
         }
