@@ -63,19 +63,19 @@ public class User {
     // 添加电影到观看历史（带日期）
     public void addToHistory(String movieId, String date) {
         String historyEntry = movieId + "@" + date;
-        // 避免重复添加
-        boolean exists = false;
+        // 避免同一天重复添加
+        boolean existsToday = false;
         for (String entry : history) {
-            if (entry.startsWith(movieId + "@")) {
-                exists = true;
+            if (entry.equals(historyEntry)) {
+                existsToday = true;
                 break;
             }
         }
-        if (!exists) {
+        if (!existsToday) {
             history.add(historyEntry);
         }
-        // 如果电影在观看列表中，从列表中移除
-        removeFromWatchlist(movieId);
+        // 注意：不再自动从watchlist中删除，允许"二刷"
+        // 用户可以手动管理watchlist
     }
 
     // 获取用户观看过的所有电影ID（不含日期）

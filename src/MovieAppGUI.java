@@ -380,22 +380,36 @@ public class MovieAppGUI extends Application {
                 }
 
                 RecommendationEngine engine = new RecommendationEngine(allMovies);
-                ArrayList<Movie> recs = engine.getRecommendations(currentUser, n);
+
+                // --- 修改开始 ---
+
+                // 1. 获取推荐列表
+                // 注意类型是 RecommendationEngine.MovieScore
+                ArrayList<RecommendationEngine.MovieScore> recs = engine.getRecommendations(currentUser, n);
 
                 showMessage("=== Recommended Movies ===");
                 if (recs.isEmpty()) {
                     showMessage("No recommendations available.");
                 } else {
-                    for (Movie m : recs) {
-                        showMessage(m.toString());
+                    for (RecommendationEngine.MovieScore item : recs) {
+                        // 2. 修正报错点：直接访问字段，不要用 getMovie()
+                        Movie m = item.movie;
+                        double s = item.score;
+
+                        // 显示结果
+                        showMessage(String.format("%s (Score: %.2f)", m.getTitle(), s));
                     }
                 }
+                // --- 修改结束 ---
+
             } catch (NumberFormatException ex) {
                 showMessage("Invalid number.");
+            } catch (Exception ex) {
+                showMessage("Error getting recommendations: " + ex.getMessage());
+                ex.printStackTrace();
             }
         });
     }
-
     /**
      * 按钮：注销
      */
@@ -409,5 +423,3 @@ public class MovieAppGUI extends Application {
         primaryStage.setScene(loginScene);
     }
 }
-
-

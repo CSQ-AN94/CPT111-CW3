@@ -1,8 +1,11 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Collections;
+import java.util.Comparator;
 
 /**
- * RecommendationEngine类 - 基于用户观看历史推荐电影
+ * 推荐引擎 - 基于用户行为统计的动态权重推荐
  */
 public class RecommendationEngine {
     private ArrayList<Movie> allMovies;
@@ -12,132 +15,200 @@ public class RecommendationEngine {
     }
 
     /**
-     * 为用户推荐电影（基于最常看的类型）
-     * @param user 用户
-     * @param n 推荐数量
-     * @return 推荐的电影列表
+     * 获取推荐结果（包含分数）
+     * 返回类型改为 ArrayList<MovieScore> 以便在主程序显示分数
      */
-    public ArrayList<Movie> getRecommendations(User user, int n) {
-        ArrayList<Movie> recommendations = new ArrayList<>();
+    public ArrayList<MovieScore> getRecommendations(User user, int n) {
+        // 1. 数据准备与去重 (Fix: 解决重复计算问题)
+        HashSet<String> uniqueIds = new HashSet<>();
+        uniqueIds.addAll(user.getWatchedMovieIds());
+        uniqueIds.addAll(user.getWatchlist());
 
-        // 1. 找出用户最常看的类型
-        String favoriteGenre = getMostWatchedGenre(user);
-
-        if (favoriteGenre == null) {
-            // 如果用户没有观看历史，推荐高评分电影
+        // 如果没有数据，返回高分电影
+        if (uniqueIds.isEmpty()) {
             return getTopRatedMovies(user, n);
         }
 
-        // 2. 找出该类型的电影，且用户没看过、不在观看列表中
-        ArrayList<String> watchedIds = user.getWatchedMovieIds();
+        // 2. 基于去重后的数据计算统计特征
+        // 计算类型集中度
+        double genreConcentration = calculateGenreConcentration(uniqueIds);
+        // 计算年份方差
+        double[] yearParams = calculateYearStats(uniqueIds);
+        double yearMean = yearParams[0];
+        double yearStd = yearParams[1];
+        double yearVariance = yearParams[2];
+        // 计算评分集中度
+        double[] ratingStats = calculateRatingStats(uniqueIds);
+        double ratingMean = ratingStats[0];
+        double ratingConcentration = ratingStats[1];
+
+        // 3. 动态计算权重
+        double[] weights = calculateDynamicWeights(
+                genreConcentration,
+                yearVariance,
+                ratingMean,
+                ratingConcentration
+        );
+        double w_genre = weights[0];
+        double w_year = weights[1];
+        double w_rating = weights[2];
+
+        // 打印分析日志（可选，为了展示给老师看算法在运行）
+        System.out.println("\n[Algorithm Analysis]");
+        System.out.println(String.format("Weights -> Genre: %.1f%% | Year: %.1f%% | Rating: %.1f%%",
+                w_genre*100, w_year*100, w_rating*100));
+
+        // 4. 计算每部电影得分
+        ArrayList<MovieScore> movieScores = new ArrayList<>();
+        HashMap<String, Double> genrePreference = calculateGenrePreference(uniqueIds);
+
         for (Movie movie : allMovies) {
-            if (movie.getGenre().equals(favoriteGenre) &&
-                    !watchedIds.contains(movie.getId()) &&
-                    !user.getWatchlist().contains(movie.getId())) {
-                recommendations.add(movie);
-
-                if (recommendations.size() >= n) {
-                    break;
-                }
+            String movieId = movie.getId();
+            // 过滤掉已看和待看的
+            if (user.getWatchedMovieIds().contains(movieId) || user.getWatchlist().contains(movieId)) {
+                continue;
             }
+
+            double score_genre = genrePreference.getOrDefault(movie.getGenre(), 0.0);
+            double score_year = Math.exp(-Math.pow(movie.getYear() - yearMean, 2) / (2 * Math.pow(yearStd, 2)));
+            double score_rating = movie.getRating() / 10.0;
+
+            double finalScore = w_genre * score_genre + w_year * score_year + w_rating * score_rating;
+            movieScores.add(new MovieScore(movie, finalScore));
         }
 
-        // 3. 如果同类型电影不够，补充其他高评分电影
-        if (recommendations.size() < n) {
-            for (Movie movie : allMovies) {
-                if (!watchedIds.contains(movie.getId()) &&
-                        !user.getWatchlist().contains(movie.getId()) &&
-                        !recommendations.contains(movie)) {
-                    recommendations.add(movie);
-
-                    if (recommendations.size() >= n) {
-                        break;
-                    }
-                }
+        // 5. 排序
+        Collections.sort(movieScores, new Comparator<MovieScore>() {
+            @Override
+            public int compare(MovieScore ms1, MovieScore ms2) {
+                return Double.compare(ms2.score, ms1.score);
             }
-        }
+        });
 
-        return recommendations;
+        // 6. 返回前N个
+        ArrayList<MovieScore> result = new ArrayList<>();
+        for (int i = 0; i < Math.min(n, movieScores.size()); i++) {
+            result.add(movieScores.get(i));
+        }
+        return result;
     }
 
-    /**
-     * 获取用户最常看的电影类型
-     * @param user 用户
-     * @return 最常看的类型
-     */
-    private String getMostWatchedGenre(User user) {
-        HashMap<String, Integer> genreCount = new HashMap<>();
+    // --- 辅助统计方法 (修改为接收 HashSet<String>) ---
 
-        // 统计每个类型的观看次数（从history中提取电影ID）
-        ArrayList<String> watchedIds = user.getWatchedMovieIds();
-        for (String movieId : watchedIds) {
-            Movie movie = findMovieById(movieId);
-            if (movie != null) {
-                String genre = movie.getGenre();
-                genreCount.put(genre, genreCount.getOrDefault(genre, 0) + 1);
-            }
+    private double calculateGenreConcentration(HashSet<String> ids) {
+        HashMap<String, Integer> counts = new HashMap<>();
+        for (String id : ids) {
+            Movie m = findMovieById(id);
+            if (m != null) counts.put(m.getGenre(), counts.getOrDefault(m.getGenre(), 0) + 1);
         }
-
-        // 也考虑观看列表中的电影类型
-        for (String movieId : user.getWatchlist()) {
-            Movie movie = findMovieById(movieId);
-            if (movie != null) {
-                String genre = movie.getGenre();
-                genreCount.put(genre, genreCount.getOrDefault(genre, 0) + 1);
-            }
+        if (ids.isEmpty()) return 0.0;
+        double hhi = 0.0;
+        for (int count : counts.values()) {
+            double p = (double) count / ids.size();
+            hhi += p * p;
         }
-
-        // 找出出现次数最多的类型
-        String mostWatchedGenre = null;
-        int maxCount = 0;
-
-        for (String genre : genreCount.keySet()) {
-            if (genreCount.get(genre) > maxCount) {
-                maxCount = genreCount.get(genre);
-                mostWatchedGenre = genre;
-            }
-        }
-
-        return mostWatchedGenre;
+        return hhi;
     }
 
-    /**
-     * 推荐高评分电影（当用户没有观看历史时）
-     * @param user 用户
-     * @param n 推荐数量
-     * @return 高评分电影列表
-     */
-    private ArrayList<Movie> getTopRatedMovies(User user, int n) {
-        ArrayList<Movie> topRated = new ArrayList<>();
-        ArrayList<String> watchedIds = user.getWatchedMovieIds();
-
-        // 简单地按顺序选择高评分电影
-        for (Movie movie : allMovies) {
-            if (movie.getRating() >= 7.0 &&
-                    !watchedIds.contains(movie.getId()) &&
-                    !user.getWatchlist().contains(movie.getId())) {
-                topRated.add(movie);
-
-                if (topRated.size() >= n) {
-                    break;
-                }
-            }
+    private HashMap<String, Double> calculateGenrePreference(HashSet<String> ids) {
+        HashMap<String, Integer> counts = new HashMap<>();
+        for (String id : ids) {
+            Movie m = findMovieById(id);
+            if (m != null) counts.put(m.getGenre(), counts.getOrDefault(m.getGenre(), 0) + 1);
         }
-
-        return topRated;
+        HashMap<String, Double> pref = new HashMap<>();
+        int total = ids.size();
+        if (total == 0) total = 1;
+        for (String g : counts.keySet()) {
+            pref.put(g, (double) counts.get(g) / total);
+        }
+        return pref;
     }
 
-    /**
-     * 根据ID查找电影
-     * @param id 电影ID
-     * @return 电影对象
-     */
+    private double[] calculateYearStats(HashSet<String> ids) {
+        ArrayList<Integer> years = new ArrayList<>();
+        for (String id : ids) {
+            Movie m = findMovieById(id);
+            if (m != null) years.add(m.getYear());
+        }
+        if (years.isEmpty()) return new double[]{2000, 10, 100};
+
+        double sum = 0;
+        for (int y : years) sum += y;
+        double mean = sum / years.size();
+
+        double var = 0;
+        for (int y : years) var += Math.pow(y - mean, 2);
+        var /= years.size();
+        double std = Math.sqrt(var);
+        if (std < 3.0) std = 3.0; // 防止除零
+
+        return new double[]{mean, std, var};
+    }
+
+    private double[] calculateRatingStats(HashSet<String> ids) {
+        ArrayList<Double> ratings = new ArrayList<>();
+        for (String id : ids) {
+            Movie m = findMovieById(id);
+            if (m != null) ratings.add(m.getRating());
+        }
+        if (ratings.isEmpty()) return new double[]{7.0, 0.0};
+
+        double sum = 0;
+        int high = 0;
+        for (double r : ratings) {
+            sum += r;
+            if (r >= 7.0) high++;
+        }
+        return new double[]{sum / ratings.size(), (double) high / ratings.size()};
+    }
+
+    private double[] calculateDynamicWeights(double genreConc, double yearVar, double ratingMean, double ratingConc) {
+        // 归一化离散度
+        double D_genre = 1.0 - genreConc;
+        double yearStd = Math.sqrt(yearVar);
+        double D_year = Math.min(yearStd / 20.0, 1.0);
+        double D_rating = 1.0 - ratingConc;
+
+        // 转化为集中度得分
+        double scale = 5.0; // 放大系数
+        double exp_genre = Math.exp((1 - D_genre) * scale);
+        double exp_year = Math.exp((1 - D_year) * scale);
+        double exp_rating = Math.exp((1 - D_rating) * scale);
+
+        double total = exp_genre + exp_year + exp_rating;
+        return new double[]{exp_genre/total, exp_year/total, exp_rating/total};
+    }
+
+    private ArrayList<MovieScore> getTopRatedMovies(User user, int n) {
+        ArrayList<MovieScore> list = new ArrayList<>();
+        for (Movie m : allMovies) {
+            if (!user.getWatchedMovieIds().contains(m.getId()) && !user.getWatchlist().contains(m.getId())) {
+                list.add(new MovieScore(m, m.getRating()/10.0));
+            }
+        }
+        Collections.sort(list, new Comparator<MovieScore>() {
+            public int compare(MovieScore m1, MovieScore m2) {
+                return Double.compare(m2.score, m1.score);
+            }
+        });
+        ArrayList<MovieScore> result = new ArrayList<>();
+        for(int i=0; i<Math.min(n, list.size()); i++) result.add(list.get(i));
+        return result;
+    }
+
     private Movie findMovieById(String id) {
-        for (Movie movie : allMovies) {
-            if (movie.getId().equals(id)) {
-                return movie;
-            }
-        }
+        for (Movie m : allMovies) if (m.getId().equals(id)) return m;
         return null;
+    }
+
+    // 将内部类改为 public，以便 Main 类可以使用
+    public static class MovieScore {
+        public Movie movie;
+        public double score;
+        public MovieScore(Movie movie, double score) {
+            this.movie = movie;
+            this.score = score;
+        }
     }
 }

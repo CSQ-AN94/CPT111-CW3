@@ -3,7 +3,7 @@
  * 包含电影的基本信息：ID、标题、类型、年份、评分
  */
 public class Movie {
-    private String id;  // 改为String类型
+    private String id;
     private String title;
     private String genre;
     private int year;
@@ -40,7 +40,7 @@ public class Movie {
     }
 
     // Setter方法
-    public void setId(String id) {  // 改为String参数
+    public void setId(String id) {
         this.id = id;
     }
 

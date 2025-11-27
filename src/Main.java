@@ -294,13 +294,13 @@ public class Main {
             }
 
             RecommendationEngine engine = new RecommendationEngine(allMovies);
-            ArrayList<Movie> recommendations = engine.getRecommendations(currentUser, n);
+            ArrayList<RecommendationEngine.MovieScore> recommendations = engine.getRecommendations(currentUser, n);
 
             System.out.println("\n=== Recommended Movies for You ===");
             if (recommendations.isEmpty()) {
                 System.out.println("No recommendations available.");
             } else {
-                for (Movie movie : recommendations) {
+                for (RecommendationEngine.MovieScore movie : recommendations) {
                     System.out.println(movie);
                 }
             }
