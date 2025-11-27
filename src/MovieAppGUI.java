@@ -16,17 +16,6 @@ import java.util.ArrayList;
 
 /**
  * 图形界面版本的电影推荐系统
- * 使用已有的 Movie / User / MovieFileHandler / UserFileHandler / RecommendationEngine
- *
- * 高层逻辑：
- * 1. 启动时加载 movies.csv 和 users.csv
- * 2. 先显示登录界面（用户名 + 密码）
- * 3. 登录成功后显示主界面：
- *      左边：电影列表
- *      右上：Watchlist
- *      右下：History
- *      底部：按钮（添加/移除/标记已看/推荐）+ 消息区域
- * 4. 退出或注销时保存用户数据
  */
 public class MovieAppGUI extends Application {
 
@@ -49,8 +38,8 @@ public class MovieAppGUI extends Application {
     private Scene mainScene;
 
     private ListView<Movie> movieListView;          // 显示所有电影
-    private ListView<Movie> watchlistView;          // 显示当前用户的 watchlist（用 Movie 而不是 ID）
-    private ListView<String> historyView;           // 显示 "电影名 (日期)"
+    private ListView<Movie> watchlistView;          // 显示 watchlist
+    private ListView<String> historyView;           // 显示 history
     private TextArea messageArea;                   // 显示提示信息 / 推荐结果
 
     public static void main(String[] args) {
@@ -69,11 +58,16 @@ public class MovieAppGUI extends Application {
         this.loginScene = buildLoginScene();
         this.mainScene = buildMainScene();
 
-        // 3. 初始显示登录界面
+        // 3. 初始显示登录界面（窗口稍微小一点）
         primaryStage.setTitle("Movie Recommendation System (GUI)");
         primaryStage.setScene(loginScene);
-        primaryStage.setMinWidth(900);
-        primaryStage.setMinHeight(600);
+        primaryStage.setWidth(800);
+        primaryStage.setHeight(500);
+        primaryStage.centerOnScreen();
+
+        // 给一点最小尺寸，防止被缩得太夸张
+        primaryStage.setMinWidth(750);
+        primaryStage.setMinHeight(450);
 
         // 4. 关闭窗口时保存数据
         primaryStage.setOnCloseRequest(event -> {
@@ -131,8 +125,17 @@ public class MovieAppGUI extends Application {
             passField.clear();
 
             refreshAllViews();
+
+            // 切换到主界面时放大一点，适合显示三个列表
             primaryStage.setTitle("Movie System - " + currentUser.getUsername());
             primaryStage.setScene(mainScene);
+            primaryStage.setWidth(1100);
+            primaryStage.setHeight(700);
+            primaryStage.centerOnScreen();
+
+            // 主界面最小尺寸稍微大一点
+            primaryStage.setMinWidth(950);
+            primaryStage.setMinHeight(600);
         });
 
         VBox vbox = new VBox(10, titleLabel, userLabel, userField,
@@ -154,6 +157,7 @@ public class MovieAppGUI extends Application {
 
         TitledPane allMoviesPane = new TitledPane("All Movies", movieListView);
         allMoviesPane.setCollapsible(false);
+        allMoviesPane.setPrefWidth(650); // 左边稍宽一点
 
         // ----- 右上：Watchlist -----
         watchlistView = new ListView<>();
@@ -168,7 +172,7 @@ public class MovieAppGUI extends Application {
         historyPane.setCollapsible(false);
 
         VBox rightBox = new VBox(10, watchlistPane, historyPane);
-        rightBox.setPrefWidth(350);
+        rightBox.setPrefWidth(380);
         VBox.setVgrow(watchlistPane, Priority.SOMETIMES);
         VBox.setVgrow(historyPane, Priority.SOMETIMES);
 
@@ -199,7 +203,7 @@ public class MovieAppGUI extends Application {
 
         messageArea = new TextArea();
         messageArea.setEditable(false);
-        messageArea.setPrefRowCount(5);
+        messageArea.setPrefRowCount(6); // 稍微高一点，方便看推荐列表
 
         VBox bottomBox = new VBox(5, buttonBox, messageArea);
         bottomBox.setPadding(new Insets(10));
@@ -210,7 +214,6 @@ public class MovieAppGUI extends Application {
         root.setLeft(allMoviesPane);
         root.setCenter(rightBox);
         root.setBottom(bottomBox);
-
         BorderPane.setMargin(allMoviesPane, new Insets(0, 10, 0, 0));
 
         return new Scene(root);
@@ -381,35 +384,33 @@ public class MovieAppGUI extends Application {
 
                 RecommendationEngine engine = new RecommendationEngine(allMovies);
 
-                // --- 修改开始 ---
-
-                // 1. 获取推荐列表
-                // 注意类型是 RecommendationEngine.MovieScore
-                ArrayList<RecommendationEngine.MovieScore> recs = engine.getRecommendations(currentUser, n);
+// getRecommendations 现在返回的是 MovieScore 列表
+                ArrayList<RecommendationEngine.MovieScore> recs =
+                        engine.getRecommendations(currentUser, n);
 
                 showMessage("=== Recommended Movies ===");
                 if (recs.isEmpty()) {
                     showMessage("No recommendations available.");
                 } else {
                     for (RecommendationEngine.MovieScore item : recs) {
-                        // 2. 修正报错点：直接访问字段，不要用 getMovie()
+                        // 下面两行根据你 MovieScore 的写法调整：
+                        // 如果是 public 字段：movie / score
                         Movie m = item.movie;
                         double s = item.score;
 
-                        // 显示结果
+                        // 如果是 getter，就写成：
+                        // Movie m = item.getMovie();
+                        // double s = item.getScore();
+
                         showMessage(String.format("%s (Score: %.2f)", m.getTitle(), s));
                     }
                 }
-                // --- 修改结束 ---
-
             } catch (NumberFormatException ex) {
                 showMessage("Invalid number.");
-            } catch (Exception ex) {
-                showMessage("Error getting recommendations: " + ex.getMessage());
-                ex.printStackTrace();
             }
         });
     }
+
     /**
      * 按钮：注销
      */
@@ -421,5 +422,13 @@ public class MovieAppGUI extends Application {
         currentUser = null;
         primaryStage.setTitle("Movie Recommendation System (GUI)");
         primaryStage.setScene(loginScene);
+
+        // 回到登录界面时也把窗口尺寸收回正常一点
+        primaryStage.setWidth(800);
+        primaryStage.setHeight(500);
+        primaryStage.centerOnScreen();
+
+        primaryStage.setMinWidth(750);
+        primaryStage.setMinHeight(450);
     }
 }
