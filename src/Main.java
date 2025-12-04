@@ -49,6 +49,7 @@ public class Main {
         System.out.println("\n=== Login Menu ===");
         System.out.println("1. Login");
         System.out.println("2. Exit");
+        System.out.println("3. Register");
         System.out.print("Please select an option: ");
 
         try {
@@ -59,6 +60,20 @@ public class Main {
             switch (choice) {
                 case 1: login(); break;
                 case 2: return false;
+                case 3:
+                    UserRegistration registrationService = new UserRegistration(scanner);
+                    User newlyRegisteredUser = registrationService.registerNewUser(allUsers);
+                    if (newlyRegisteredUser != null) {
+                        // 1. 将新用户添加到内存列表
+                        allUsers.add(newlyRegisteredUser);
+                        // 写入csv
+                        userHandler.saveUsers(USERS_FILE, allUsers);
+                        //  立即登录新用户
+                        currentUser = newlyRegisteredUser;
+                        System.out.println("You are now logged in as " + currentUser.getUsername());
+                    }
+
+                    break;
                 default: System.out.println("Invalid option.");
             }
         } catch (NumberFormatException e) {

@@ -176,18 +176,41 @@ public class RecommendationEngine {
 
     private ArrayList<MovieScore> getTopRatedMovies(User user, int n) {
         ArrayList<MovieScore> list = new ArrayList<>();
+
+        // 1. 筛选出所有没看过的电影
         for (Movie m : allMovies) {
             if (!user.getWatchedMovieIds().contains(m.getId()) && !user.getWatchlist().contains(m.getId())) {
                 list.add(new MovieScore(m, m.getRating()/10.0));
             }
         }
+
+        // 2. 先按分数从高到低排序 (保持高质量)
         Collections.sort(list, new Comparator<MovieScore>() {
+            @Override
             public int compare(MovieScore m1, MovieScore m2) {
                 return Double.compare(m2.score, m1.score);
             }
         });
+
+        // 3. [核心修改] 截取前 50 部作为"精品候选池" (Candidate Pool)
+        // 如果想让随机性更大，可以把 50 改成 100；如果想更严谨，改成 20。
+        int poolSize = Math.min(list.size(), 20);
+
+        // 创建一个新的列表，只包含前 poolSize 个电影
+        ArrayList<MovieScore> candidatePool = new ArrayList<>();
+        for (int i = 0; i < poolSize; i++) {
+            candidatePool.add(list.get(i));
+        }
+
+        // 4. [核心修改] 对精品池进行随机洗牌
+        Collections.shuffle(candidatePool);
+
+        // 5. 从洗牌后的池子中取前 N 个返回
         ArrayList<MovieScore> result = new ArrayList<>();
-        for(int i=0; i<Math.min(n, list.size()); i++) result.add(list.get(i));
+        for(int i = 0; i < Math.min(n, candidatePool.size()); i++) {
+            result.add(candidatePool.get(i));
+        }
+
         return result;
     }
 

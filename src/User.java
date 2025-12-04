@@ -2,28 +2,31 @@ import java.util.ArrayList;
 
 /**
  * User类 - 表示一个用户
- * 包含用户名、密码、观看列表和观看历史
+ * 更新：使用 Watchlist 和 History 对象组合，符合 OO 设计要求
  */
 public class User {
     private String username;
     private String password;
-    private ArrayList<String> watchlist;  // 改为String类型
-    private ArrayList<String> history;    // 改为String类型（包含日期信息）
 
-    // 构造函数
+    // 使用自定义类，而不是直接使用 ArrayList
+    private Watchlist watchlist;
+    private History history;
+
+    // 构造函数 (注册新用户)
     public User(String username, String password) {
         this.username = username;
         this.password = password;
-        this.watchlist = new ArrayList<>();
-        this.history = new ArrayList<>();
+        this.watchlist = new Watchlist();
+        this.history = new History();
     }
 
-    // 带watchlist和history的构造函数（用于从文件加载）
-    public User(String username, String password, ArrayList<String> watchlist, ArrayList<String> history) {
+    // 构造函数 (从文件加载)
+    // UserFileHandler 传递过来的是 ArrayList，我们在这里将它们包装进对象
+    public User(String username, String password, ArrayList<String> rawWatchlist, ArrayList<String> rawHistory) {
         this.username = username;
         this.password = password;
-        this.watchlist = watchlist;
-        this.history = history;
+        this.watchlist = new Watchlist(rawWatchlist);
+        this.history = new History(rawHistory);
     }
 
     // Getter方法
@@ -35,12 +38,21 @@ public class User {
         return password;
     }
 
+    // --- 关键修改：为了兼容其他类，这里返回内部的数据 ---
+
+    // 获取观看列表数据
     public ArrayList<String> getWatchlist() {
-        return watchlist;
+        return watchlist.getMovieIds();
     }
 
+    // 获取历史记录数据 (ID@Date)
     public ArrayList<String> getHistory() {
-        return history;
+        return history.getEntries();
+    }
+
+    // 获取仅含ID的历史记录 (用于算法)
+    public ArrayList<String> getWatchedMovieIds() {
+        return history.getWatchedMovieIds();
     }
 
     // Setter方法
@@ -48,11 +60,11 @@ public class User {
         this.password = password;
     }
 
+    // --- 业务逻辑：委托给子模块处理 ---
+
     // 添加电影到观看列表
     public void addToWatchlist(String movieId) {
-        if (!watchlist.contains(movieId)) {
-            watchlist.add(movieId);
-        }
+        watchlist.add(movieId);
     }
 
     // 从观看列表移除电影
@@ -62,32 +74,7 @@ public class User {
 
     // 添加电影到观看历史（带日期）
     public void addToHistory(String movieId, String date) {
-        String historyEntry = movieId + "@" + date;
-        // 避免同一天重复添加
-        boolean existsToday = false;
-        for (String entry : history) {
-            if (entry.equals(historyEntry)) {
-                existsToday = true;
-                break;
-            }
-        }
-        if (!existsToday) {
-            history.add(historyEntry);
-        }
-        // 注意：不再自动从watchlist中删除，允许"二刷"
-        // 用户可以手动管理watchlist
-    }
-
-    // 获取用户观看过的所有电影ID（不含日期）
-    public ArrayList<String> getWatchedMovieIds() {
-        ArrayList<String> movieIds = new ArrayList<>();
-        for (String entry : history) {
-            String[] parts = entry.split("@");
-            if (parts.length > 0) {
-                movieIds.add(parts[0]);
-            }
-        }
-        return movieIds;
+        history.add(movieId, date);
     }
 
     // 验证密码
