@@ -12,23 +12,21 @@ import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
-import javafx.stage.Modality;
 import javafx.stage.Stage;
 import javafx.stage.WindowEvent;
 import javafx.util.Callback;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 /**
- * MovieAppGUI - 最终增强版
+ * MovieAppGUI - 最终修复版
  *
- * 修改亮点：
- * 1. 登录界面：Login 和 Register 按钮并排，Register 为绿色。
- * 2. 列表视图：使用 setCellFactory 自定义列表行，在每一行电影后面直接添加操作按钮。
- * - All Movies: [Add to Watchlist] [Mark as Watched]
- * - Watchlist:  [Remove] [Mark as Watched]
- * 3. 推荐系统：分数显示保留两位小数 (%.2f)。
- * 4. 逻辑：严格遵守匿名内部类写法，支持二刷。
+ * 修复说明：
+ * 1. [Fix Error] 修复了 "Cannot resolve symbol 'mainLayout'" 报错。
+ * - 原因：之前 mainLayout 漏掉了类成员变量的声明。
+ * - 解决：在类开头添加了 private BorderPane mainLayout;
+ * 2. 保持了之前所有功能（窗口大小固定、绿色注册按钮、列表操作按钮等）。
  */
 public class MovieAppGUI extends Application {
 
@@ -48,16 +46,22 @@ public class MovieAppGUI extends Application {
     // --- UI 组件 ---
     private Stage primaryStage;
     private Scene loginScene;
-    private Scene registerScene; // 新增注册场景引用
+    private Scene registerScene;
     private Scene mainScene;
 
-    // 主布局容器
+    // 统一窗口大小常量
+    private static final double WINDOW_WIDTH = 1100;
+    private static final double WINDOW_HEIGHT = 700;
+
+    // --- 关键修复：添加 mainLayout 声明 ---
+    // 这个变量需要在多个方法中访问（例如点击侧边栏切换视图），所以必须是类成员变量
     private BorderPane mainLayout;
 
-    // 全局列表，方便刷新
+    // 全局列表
     private ListView<Movie> globalMovieListView;
     private ListView<Movie> globalWatchlistView;
     private ListView<String> globalHistoryListView;
+    private ListView<RecommendationEngine.MovieScore> globalRecListView;
 
     public static void main(String[] args) {
         launch(args);
@@ -78,8 +82,9 @@ public class MovieAppGUI extends Application {
         // 3. 设置舞台
         primaryStage.setTitle("Movie Recommendation System");
         primaryStage.setScene(loginScene);
-        primaryStage.setMinWidth(1000); //稍微加宽一点以便显示按钮
-        primaryStage.setMinHeight(650);
+        // 设置最小尺寸，防止用户拖太小
+        primaryStage.setMinWidth(WINDOW_WIDTH);
+        primaryStage.setMinHeight(WINDOW_HEIGHT);
 
         // 4. 关闭保存
         primaryStage.setOnCloseRequest(new EventHandler<WindowEvent>() {
@@ -95,7 +100,7 @@ public class MovieAppGUI extends Application {
     }
 
     // ==========================================
-    //              1. 登录界面 (Login View)
+    //              1. 登录界面
     // ==========================================
     private Scene buildLoginScene() {
         Label titleLabel = new Label("Movie Recommendation System");
@@ -113,7 +118,6 @@ public class MovieAppGUI extends Application {
         Label infoLabel = new Label();
         infoLabel.setTextFill(Color.RED);
 
-        // --- 按钮区域 ---
         Button loginButton = new Button("Login");
         loginButton.setDefaultButton(true);
         loginButton.setPrefWidth(140);
@@ -121,15 +125,12 @@ public class MovieAppGUI extends Application {
 
         Button registerButton = new Button("Register");
         registerButton.setPrefWidth(140);
-        // 设置为绿色
         registerButton.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-cursor: hand; -fx-font-weight: bold;");
 
-        // 按钮并排布局
-        HBox buttonBox = new HBox(20); // 间距20
+        HBox buttonBox = new HBox(20);
         buttonBox.setAlignment(Pos.CENTER);
         buttonBox.getChildren().addAll(loginButton, registerButton);
 
-        // 登录逻辑
         loginButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
@@ -157,7 +158,6 @@ public class MovieAppGUI extends Application {
             }
         });
 
-        // 注册跳转逻辑
         registerButton.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
@@ -173,11 +173,12 @@ public class MovieAppGUI extends Application {
         layout.setAlignment(Pos.CENTER);
         layout.getChildren().addAll(titleLabel, userField, passPane, buttonBox, infoLabel);
 
-        return new Scene(layout);
+        // 修复点：强制指定场景大小，防止窗口塌缩
+        return new Scene(layout, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
     // ==========================================
-    //              2. 注册界面 (Register View)
+    //              2. 注册界面
     // ==========================================
     private Scene buildRegisterScene() {
         Label headerLabel = new Label("Create New Account");
@@ -201,14 +202,13 @@ public class MovieAppGUI extends Application {
         Label errorMsg = new Label();
         errorMsg.setStyle("-fx-text-fill: red;");
 
-        Button submitBtn = new Button("Register Now");
+        Button submitBtn = new Button("Register & Login");
         submitBtn.setPrefWidth(300);
         submitBtn.setStyle("-fx-background-color: #2ecc71; -fx-text-fill: white; -fx-font-weight: bold;");
 
         Button backBtn = new Button("Back to Login");
         backBtn.setStyle("-fx-background-color: transparent; -fx-text-fill: #7f8c8d; -fx-underline: true;");
 
-        // 注册逻辑
         submitBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
             public void handle(ActionEvent e) {
@@ -229,12 +229,10 @@ public class MovieAppGUI extends Application {
                     return;
                 }
 
-                // 创建新用户
                 User newUser = new User(u, p);
                 allUsers.add(newUser);
                 userHandler.saveUsers(USERS_FILE, allUsers);
 
-                // 注册成功直接登录
                 currentUser = newUser;
                 userFld.clear(); passFld.clear(); confirmFld.clear(); errorMsg.setText("");
 
@@ -254,25 +252,26 @@ public class MovieAppGUI extends Application {
         });
 
         form.getChildren().addAll(headerLabel, userFld, passPane, confirmPane, errorMsg, submitBtn, backBtn);
-
         StackPane root = new StackPane(form);
-        return new Scene(root);
+
+        // 修复点：强制指定场景大小，防止窗口塌缩
+        return new Scene(root, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
     // ==========================================
-    //              3. 主界面 (Main View)
+    //              3. 主界面布局
     // ==========================================
     private Scene buildMainScene() {
+        // 在这里初始化成员变量 mainLayout
         mainLayout = new BorderPane();
 
-        // 左侧导航栏
         VBox sidebar = createSidebar();
         mainLayout.setLeft(sidebar);
 
-        // 默认显示 All Movies
         mainLayout.setCenter(createAllMoviesView());
 
-        return new Scene(mainLayout, 1100, 650);
+        // 统一使用相同的大小
+        return new Scene(mainLayout, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
     private VBox createSidebar() {
@@ -293,6 +292,7 @@ public class MovieAppGUI extends Application {
         Button btnRecs = createSidebarButton("Recommendations");
         Button btnLogout = createSidebarButton("Logout");
 
+        // 侧边栏按钮事件：切换 Center 区域
         btnChangePass.setOnAction(new EventHandler<ActionEvent>() { @Override public void handle(ActionEvent e) { mainLayout.setCenter(createChangePasswordView()); } });
         btnAllMovies.setOnAction(new EventHandler<ActionEvent>() { @Override public void handle(ActionEvent e) { mainLayout.setCenter(createAllMoviesView()); } });
         btnWatchlist.setOnAction(new EventHandler<ActionEvent>() { @Override public void handle(ActionEvent e) { mainLayout.setCenter(createWatchlistView()); } });
@@ -324,7 +324,7 @@ public class MovieAppGUI extends Application {
     }
 
     // ==========================================
-    //         View 1: All Movies (带行内按钮)
+    //      View 1: All Movies
     // ==========================================
     private Node createAllMoviesView() {
         BorderPane layout = new BorderPane();
@@ -334,7 +334,6 @@ public class MovieAppGUI extends Application {
         header.setFont(Font.font("Arial", FontWeight.BOLD, 18));
         layout.setTop(header);
 
-        // 状态栏
         Label statusLabel = new Label("Select actions from the list below.");
         statusLabel.setPadding(new Insets(5));
         layout.setBottom(statusLabel);
@@ -344,7 +343,6 @@ public class MovieAppGUI extends Application {
             globalMovieListView.setItems(FXCollections.observableArrayList(allMovies));
         }
 
-        // --- 核心修改：自定义 Cell Factory ---
         globalMovieListView.setCellFactory(new Callback<ListView<Movie>, ListCell<Movie>>() {
             @Override
             public ListCell<Movie> call(ListView<Movie> param) {
@@ -357,42 +355,44 @@ public class MovieAppGUI extends Application {
                             setText(null);
                             setGraphic(null);
                         } else {
-                            // 左侧：电影信息
-                            VBox infoBox = new VBox(2);
-                            Label titleLbl = new Label(movie.getTitle());
-                            titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-                            Label detailLbl = new Label(String.format("%s | %d | %.1f", movie.getGenre(), movie.getYear(), movie.getRating()));
+                            VBox infoBox = new VBox(5);
+
+                            Label titleLbl = new Label("[" + movie.getId() + "] " + movie.getTitle());
+                            titleLbl.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+                            Label detailLbl = new Label(String.format("Genre: %s | Year: %d | Rating: %.1f",
+                                    movie.getGenre(), movie.getYear(), movie.getRating()));
+                            detailLbl.setTextFill(Color.web("#555555"));
+                            detailLbl.setFont(Font.font("Arial", 12));
+
                             infoBox.getChildren().addAll(titleLbl, detailLbl);
 
-                            // 中间：占位符（把按钮挤到右边）
                             Region spacer = new Region();
                             HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                            // 右侧：按钮组
                             Button btnAdd = new Button("Add to Watchlist");
                             btnAdd.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 11px;");
+                            btnAdd.setPrefWidth(120);
 
                             Button btnWatch = new Button("Mark as Watched");
                             btnWatch.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-size: 11px;");
+                            btnWatch.setPrefWidth(120);
 
-                            // 按钮逻辑：Add
                             btnAdd.setOnAction(new EventHandler<ActionEvent>() {
                                 @Override
                                 public void handle(ActionEvent event) {
                                     if (currentUser.getWatchlist().contains(movie.getId())) {
-                                        statusLabel.setText(movie.getTitle() + " is already in watchlist.");
+                                        statusLabel.setText("Movie already in watchlist.");
                                         statusLabel.setTextFill(Color.ORANGE);
                                     } else {
-                                        // 逻辑修改：允许二刷，不检查 History
                                         currentUser.addToWatchlist(movie.getId());
                                         userHandler.saveUsers(USERS_FILE, allUsers);
-                                        statusLabel.setText("Added to watchlist: " + movie.getTitle());
+                                        statusLabel.setText("Added: " + movie.getTitle());
                                         statusLabel.setTextFill(Color.GREEN);
                                     }
                                 }
                             });
 
-                            // 按钮逻辑：Watch
                             btnWatch.setOnAction(new EventHandler<ActionEvent>() {
                                 @Override
                                 public void handle(ActionEvent event) {
@@ -403,7 +403,6 @@ public class MovieAppGUI extends Application {
                             HBox row = new HBox(10);
                             row.setAlignment(Pos.CENTER_LEFT);
                             row.getChildren().addAll(infoBox, spacer, btnAdd, btnWatch);
-
                             setGraphic(row);
                         }
                     }
@@ -416,7 +415,7 @@ public class MovieAppGUI extends Application {
     }
 
     // ==========================================
-    //         View 2: Watchlist (带行内按钮)
+    //      View 2: Watchlist
     // ==========================================
     private Node createWatchlistView() {
         BorderPane layout = new BorderPane();
@@ -433,7 +432,6 @@ public class MovieAppGUI extends Application {
         globalWatchlistView = new ListView<>();
         refreshWatchlistData();
 
-        // --- 核心修改：自定义 Cell Factory ---
         globalWatchlistView.setCellFactory(new Callback<ListView<Movie>, ListCell<Movie>>() {
             @Override
             public ListCell<Movie> call(ListView<Movie> param) {
@@ -446,40 +444,44 @@ public class MovieAppGUI extends Application {
                             setText(null);
                             setGraphic(null);
                         } else {
-                            VBox infoBox = new VBox(2);
-                            Label titleLbl = new Label(movie.getTitle());
-                            titleLbl.setStyle("-fx-font-weight: bold; -fx-font-size: 14px;");
-                            Label detailLbl = new Label(movie.getGenre() + " (" + movie.getYear() + ")");
+                            VBox infoBox = new VBox(5);
+
+                            Label titleLbl = new Label("[" + movie.getId() + "] " + movie.getTitle());
+                            titleLbl.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+                            Label detailLbl = new Label(String.format("Genre: %s | Year: %d | Rating: %.1f",
+                                    movie.getGenre(), movie.getYear(), movie.getRating()));
+                            detailLbl.setTextFill(Color.web("#555555"));
+                            detailLbl.setFont(Font.font("Arial", 12));
+
                             infoBox.getChildren().addAll(titleLbl, detailLbl);
 
                             Region spacer = new Region();
                             HBox.setHgrow(spacer, Priority.ALWAYS);
 
-                            // 按钮：Remove (红色)
                             Button btnRemove = new Button("Remove");
                             btnRemove.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 11px;");
+                            btnRemove.setPrefWidth(120);
 
-                            // 按钮：Watch (橙色)
                             Button btnWatch = new Button("Mark as Watched");
                             btnWatch.setStyle("-fx-background-color: #e67e22; -fx-text-fill: white; -fx-font-size: 11px;");
+                            btnWatch.setPrefWidth(120);
 
-                            // 逻辑：Remove
                             btnRemove.setOnAction(new EventHandler<ActionEvent>() {
                                 @Override
                                 public void handle(ActionEvent event) {
                                     currentUser.removeFromWatchlist(movie.getId());
                                     userHandler.saveUsers(USERS_FILE, allUsers);
-                                    refreshWatchlistData(); // 刷新列表
+                                    refreshWatchlistData();
                                     statusLabel.setText("Removed: " + movie.getTitle());
                                 }
                             });
 
-                            // 逻辑：Watch
                             btnWatch.setOnAction(new EventHandler<ActionEvent>() {
                                 @Override
                                 public void handle(ActionEvent event) {
                                     handleMarkWatchedLogic(movie, statusLabel);
-                                    refreshWatchlistData(); // 列表会刷新
+                                    refreshWatchlistData();
                                 }
                             });
 
@@ -510,39 +512,143 @@ public class MovieAppGUI extends Application {
 
         globalHistoryListView = new ListView<>();
         refreshHistoryData();
+
+        globalHistoryListView.setCellFactory(new Callback<ListView<String>, ListCell<String>>() {
+            @Override
+            public ListCell<String> call(ListView<String> param) {
+                return new ListCell<String>() {
+                    @Override
+                    protected void updateItem(String item, boolean empty) {
+                        super.updateItem(item, empty);
+
+                        if (empty || item == null) {
+                            setText(null);
+                            setGraphic(null);
+                        } else {
+                            String[] parts = item.split("@");
+                            VBox infoBox = new VBox(5);
+                            Label titleLbl = new Label(item);
+                            Label detailLbl = new Label("");
+
+                            if (parts.length == 2) {
+                                Movie m = movieHandler.findMovieById(allMovies, parts[0]);
+                                String date = parts[1];
+                                if (m != null) {
+                                    titleLbl.setText("[" + m.getId() + "] " + m.getTitle());
+                                    titleLbl.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+                                    detailLbl.setText(String.format("Genre: %s | Year: %d | Rating: %.1f | Date: %s",
+                                            m.getGenre(), m.getYear(), m.getRating(), date));
+                                    detailLbl.setTextFill(Color.web("#555555"));
+                                    detailLbl.setFont(Font.font("Arial", 12));
+                                }
+                            }
+
+                            infoBox.getChildren().addAll(titleLbl, detailLbl);
+
+                            Region spacer = new Region();
+                            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                            Button btnRemoveRow = new Button("Remove");
+                            btnRemoveRow.setStyle("-fx-background-color: #e74c3c; -fx-text-fill: white; -fx-font-size: 10px;");
+
+                            btnRemoveRow.setOnAction(new EventHandler<ActionEvent>() {
+                                @Override
+                                public void handle(ActionEvent event) {
+                                    currentUser.getHistory().remove(item);
+                                    userHandler.saveUsers(USERS_FILE, allUsers);
+                                    refreshHistoryData();
+                                }
+                            });
+
+                            HBox row = new HBox(10);
+                            row.setAlignment(Pos.CENTER_LEFT);
+                            row.getChildren().addAll(infoBox, spacer, btnRemoveRow);
+                            setGraphic(row);
+                        }
+                    }
+                };
+            }
+        });
+
         layout.setCenter(globalHistoryListView);
+
+        Button btnClear = new Button("Clear All History");
+        btnClear.setStyle("-fx-background-color: #c0392b; -fx-text-fill: white; -fx-font-weight: bold;");
+
+        Label statusLabel = new Label("");
+        statusLabel.setPadding(new Insets(0, 0, 0, 10));
+
+        btnClear.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                if (currentUser.getHistory().isEmpty()) {
+                    statusLabel.setText("History is already empty.");
+                    statusLabel.setTextFill(Color.ORANGE);
+                } else {
+                    currentUser.getHistory().clear();
+                    userHandler.saveUsers(USERS_FILE, allUsers);
+                    refreshHistoryData();
+                    statusLabel.setText("History cleared successfully.");
+                    statusLabel.setTextFill(Color.GREEN);
+                }
+            }
+        });
+
+        HBox bottomBox = new HBox(10);
+        bottomBox.setAlignment(Pos.CENTER_LEFT);
+        bottomBox.setPadding(new Insets(10, 0, 0, 0));
+        bottomBox.getChildren().addAll(btnClear, statusLabel);
+
+        layout.setBottom(bottomBox);
 
         return layout;
     }
 
     // ==========================================
-    //         View 4: Recommendations
+    //    View 4: Recommendations
     // ==========================================
     private Node createRecommendationsView() {
-        VBox layout = new VBox(20);
-        layout.setPadding(new Insets(30));
-        layout.setAlignment(Pos.TOP_LEFT);
+        BorderPane mainLayout = new BorderPane();
+        mainLayout.setPadding(new Insets(15));
+
+        VBox topControls = new VBox(10);
+        topControls.setPadding(new Insets(0, 0, 15, 0));
 
         Label header = new Label("Get Recommendations");
         header.setFont(Font.font("Arial", FontWeight.BOLD, 22));
 
-        CheckBox cbGenre = new CheckBox("Genre");
-        CheckBox cbYear = new CheckBox("Year");
-        CheckBox cbRating = new CheckBox("Rating");
+        HBox filters = new HBox(15);
+        filters.setAlignment(Pos.CENTER_LEFT);
+        CheckBox cbGenre = new CheckBox("Genre (Type)");
+        CheckBox cbYear = new CheckBox("Year (Era)");
+        CheckBox cbRating = new CheckBox("Rating (Score)");
         cbGenre.setSelected(true); cbYear.setSelected(true); cbRating.setSelected(true);
 
-        HBox numBox = new HBox(10);
-        numBox.setAlignment(Pos.CENTER_LEFT);
         TextField numField = new TextField("5");
         numField.setPrefWidth(50);
-        numBox.getChildren().addAll(new Label("Count:"), numField);
+        filters.getChildren().addAll(new Label("Criteria:"), cbGenre, cbYear, cbRating, new Label("Count:"), numField);
+
+        HBox actionButtons = new HBox(15);
+        actionButtons.setAlignment(Pos.CENTER_LEFT);
 
         Button generateBtn = new Button("Generate");
-        generateBtn.setStyle("-fx-background-color: #8e44ad; -fx-text-fill: white;");
+        generateBtn.setStyle("-fx-background-color: #8e44ad; -fx-text-fill: white; -fx-font-weight: bold;");
 
-        TextArea resultArea = new TextArea();
-        resultArea.setEditable(false);
-        resultArea.setPrefHeight(300);
+        Button addAllBtn = new Button("Add All to Watchlist");
+        addAllBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        addAllBtn.setDisable(true);
+
+        actionButtons.getChildren().addAll(generateBtn, addAllBtn);
+
+        topControls.getChildren().addAll(header, filters, actionButtons);
+        mainLayout.setTop(topControls);
+
+        globalRecListView = new ListView<>();
+        mainLayout.setCenter(globalRecListView);
+
+        Label statusLabel = new Label("Click Generate to get movie suggestions.");
+        mainLayout.setBottom(statusLabel);
 
         generateBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -556,26 +662,100 @@ public class MovieAppGUI extends Application {
                             currentUser, n, cbGenre.isSelected(), cbYear.isSelected(), cbRating.isSelected()
                     );
 
-                    StringBuilder sb = new StringBuilder();
-                    sb.append("Top Recommendations:\n\n");
                     if (recs.isEmpty()) {
-                        sb.append("No matches found.");
+                        statusLabel.setText("No recommendations found based on your history.");
+                        statusLabel.setTextFill(Color.ORANGE);
+                        globalRecListView.setItems(FXCollections.observableArrayList());
+                        addAllBtn.setDisable(true);
                     } else {
-                        for (RecommendationEngine.MovieScore ms : recs) {
-                            // --- 修改：保留两位小数 ---
-                            sb.append(String.format("[Score: %.2f] %s\n", ms.score * 10, ms.movie.toString()));
-                        }
+                        globalRecListView.setItems(FXCollections.observableArrayList(recs));
+                        statusLabel.setText("Found " + recs.size() + " recommendations.");
+                        statusLabel.setTextFill(Color.GREEN);
+                        addAllBtn.setDisable(false);
                     }
-                    resultArea.setText(sb.toString());
 
                 } catch (NumberFormatException ex) {
-                    resultArea.setText("Invalid number.");
+                    statusLabel.setText("Invalid number input.");
+                    statusLabel.setTextFill(Color.RED);
                 }
             }
         });
 
-        layout.getChildren().addAll(header, new Label("Criteria:"), cbGenre, cbYear, cbRating, numBox, generateBtn, resultArea);
-        return layout;
+        addAllBtn.setOnAction(new EventHandler<ActionEvent>() {
+            @Override
+            public void handle(ActionEvent event) {
+                ObservableList<RecommendationEngine.MovieScore> items = globalRecListView.getItems();
+                if (items == null || items.isEmpty()) return;
+
+                int count = 0;
+                for (RecommendationEngine.MovieScore ms : items) {
+                    if (!currentUser.getWatchlist().contains(ms.movie.getId())) {
+                        currentUser.addToWatchlist(ms.movie.getId());
+                        count++;
+                    }
+                }
+                userHandler.saveUsers(USERS_FILE, allUsers);
+                statusLabel.setText("Added " + count + " new movies to watchlist.");
+                globalRecListView.refresh();
+            }
+        });
+
+        globalRecListView.setCellFactory(new Callback<ListView<RecommendationEngine.MovieScore>, ListCell<RecommendationEngine.MovieScore>>() {
+            @Override
+            public ListCell<RecommendationEngine.MovieScore> call(ListView<RecommendationEngine.MovieScore> param) {
+                return new ListCell<RecommendationEngine.MovieScore>() {
+                    @Override
+                    protected void updateItem(RecommendationEngine.MovieScore item, boolean empty) {
+                        super.updateItem(item, empty);
+
+                        if (empty || item == null) {
+                            setText(null);
+                            setGraphic(null);
+                        } else {
+                            VBox infoBox = new VBox(5);
+
+                            Label titleLbl = new Label("[" + item.movie.getId() + "] " + item.movie.getTitle());
+                            titleLbl.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+                            Label detailLbl = new Label(String.format("Score: %.2f | Genre: %s | Year: %d | Rating: %.1f",
+                                    item.score * 10, item.movie.getGenre(), item.movie.getYear(), item.movie.getRating()));
+                            detailLbl.setTextFill(Color.web("#555555"));
+                            detailLbl.setFont(Font.font("Arial", 12));
+
+                            infoBox.getChildren().addAll(titleLbl, detailLbl);
+
+                            Region spacer = new Region();
+                            HBox.setHgrow(spacer, Priority.ALWAYS);
+
+                            Button btnAdd = new Button("Add to Watchlist");
+                            btnAdd.setStyle("-fx-background-color: #3498db; -fx-text-fill: white; -fx-font-size: 11px;");
+
+                            btnAdd.setOnAction(new EventHandler<ActionEvent>() {
+                                @Override
+                                public void handle(ActionEvent event) {
+                                    if (currentUser.getWatchlist().contains(item.movie.getId())) {
+                                        statusLabel.setText("Already in watchlist: " + item.movie.getTitle());
+                                        statusLabel.setTextFill(Color.ORANGE);
+                                    } else {
+                                        currentUser.addToWatchlist(item.movie.getId());
+                                        userHandler.saveUsers(USERS_FILE, allUsers);
+                                        statusLabel.setText("Added: " + item.movie.getTitle());
+                                        statusLabel.setTextFill(Color.GREEN);
+                                    }
+                                }
+                            });
+
+                            HBox row = new HBox(10);
+                            row.setAlignment(Pos.CENTER_LEFT);
+                            row.getChildren().addAll(infoBox, spacer, btnAdd);
+                            setGraphic(row);
+                        }
+                    }
+                };
+            }
+        });
+
+        return mainLayout;
     }
 
     // ==========================================
@@ -596,12 +776,11 @@ public class MovieAppGUI extends Application {
         StackPane p2 = createPasswordWithEye(newF);
         StackPane p3 = createPasswordWithEye(conF);
 
-        // 限制宽度
         p1.setMaxWidth(300); p2.setMaxWidth(300); p3.setMaxWidth(300);
 
         Label msg = new Label();
         Button saveBtn = new Button("Save Changes");
-        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white;");
+        saveBtn.setStyle("-fx-background-color: #27ae60; -fx-text-fill: white; -fx-font-weight: bold;");
 
         saveBtn.setOnAction(new EventHandler<ActionEvent>() {
             @Override
@@ -640,16 +819,11 @@ public class MovieAppGUI extends Application {
         primaryStage.setTitle("Movie Recommendation System");
     }
 
-    /**
-     * 通用的"标记已看"逻辑
-     */
     private void handleMarkWatchedLogic(Movie movie, Label statusLabel) {
         String today = java.time.LocalDate.now().toString();
 
-        // 1. 添加到历史 (User类里已处理重复日期逻辑)
         currentUser.addToHistory(movie.getId(), today);
 
-        // 2. 如果在待看列表，则移除
         if (currentUser.getWatchlist().contains(movie.getId())) {
             currentUser.removeFromWatchlist(movie.getId());
         }
@@ -671,16 +845,11 @@ public class MovieAppGUI extends Application {
 
     private void refreshHistoryData() {
         if (globalHistoryListView == null || currentUser == null) return;
-        ArrayList<String> displayList = new ArrayList<>();
+
         ArrayList<String> history = currentUser.getHistory();
-        for (int i = history.size() - 1; i >= 0; i--) {
-            String entry = history.get(i);
-            String[] parts = entry.split("@");
-            if (parts.length == 2) {
-                Movie m = movieHandler.findMovieById(allMovies, parts[0]);
-                if (m != null) displayList.add(String.format("%s (Date: %s)", m.getTitle(), parts[1]));
-            }
-        }
+        ArrayList<String> displayList = new ArrayList<>(history);
+        Collections.reverse(displayList);
+
         globalHistoryListView.setItems(FXCollections.observableArrayList(displayList));
     }
 
