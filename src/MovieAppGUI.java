@@ -1,9 +1,7 @@
 import javafx.application.Application;
 import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.geometry.Insets;
 import javafx.geometry.Pos;
-import javafx.scene.Node;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.*;
@@ -11,13 +9,13 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
-import java.util.ArrayList;
-import java.util.Collections;
+import java.util.*;
 
 /**
- * MovieAppGUI - Main Entry Point
- * Implements the GUI using JavaFX.
- * Refactored for better modularity and readability.
+ * MovieAppGUI - Final Polish
+ * 包括：History 和 Recommendations 中完整的电影细节 (Year, Rating)；
+ * Recommendations 列表中的电影标题加粗。
+ * 严格遵守 import.docx 约束。
  */
 public class MovieAppGUI extends Application {
 
@@ -38,7 +36,7 @@ public class MovieAppGUI extends Application {
     private Stage primaryStage;
     private Scene loginScene;
     private Scene registerScene;
-    private BorderPane mainLayout; // Main layout container
+    private BorderPane mainLayout;
 
     // --- UI Lists ---
     private ListView<Movie> globalMovieListView;
@@ -73,7 +71,7 @@ public class MovieAppGUI extends Application {
         primaryStage.setMinHeight(WINDOW_HEIGHT);
 
         // 4. Save on Close
-        primaryStage.setOnCloseRequest(event -> {
+        primaryStage.setOnCloseRequest(e -> {
             if (allUsers != null) {
                 userHandler.saveUsers(USERS_FILE, allUsers);
             }
@@ -106,7 +104,8 @@ public class MovieAppGUI extends Application {
 
         Button registerButton = createStyledButton("Register", "#2ecc71");
 
-        HBox buttonBox = new HBox(20, loginButton, registerButton);
+        HBox buttonBox = new HBox(20);
+        buttonBox.getChildren().addAll(loginButton, registerButton);
         buttonBox.setAlignment(Pos.CENTER);
 
         // Event Handling
@@ -139,7 +138,8 @@ public class MovieAppGUI extends Application {
             primaryStage.setTitle("Register New User");
         });
 
-        VBox layout = new VBox(20, titleLabel, userField, passPane, buttonBox, infoLabel);
+        VBox layout = new VBox(20);
+        layout.getChildren().addAll(titleLabel, userField, passPane, buttonBox, infoLabel);
         layout.setAlignment(Pos.CENTER);
         return new Scene(layout, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
@@ -204,7 +204,8 @@ public class MovieAppGUI extends Application {
             primaryStage.setTitle("Movie Recommendation System");
         });
 
-        VBox form = new VBox(15, headerLabel, userFld, passPane, confirmPane, errorMsg, submitBtn, backBtn);
+        VBox form = new VBox(15);
+        form.getChildren().addAll(headerLabel, userFld, passPane, confirmPane, errorMsg, submitBtn, backBtn);
         form.setMaxWidth(300);
         form.setAlignment(Pos.CENTER);
 
@@ -259,7 +260,7 @@ public class MovieAppGUI extends Application {
     }
 
     // --- VIEW: All Movies ---
-    private Node createAllMoviesView() {
+    private Pane createAllMoviesView() {
         BorderPane layout = createBaseLayout("All Movies Repository", "Select actions from the list below.");
         Label statusLabel = (Label) layout.getBottom();
 
@@ -268,7 +269,6 @@ public class MovieAppGUI extends Application {
             globalMovieListView.setItems(FXCollections.observableArrayList(allMovies));
         }
 
-        // Custom Cell Factory
         globalMovieListView.setCellFactory(param -> new ListCell<Movie>() {
             @Override
             protected void updateItem(Movie movie, boolean empty) {
@@ -302,7 +302,7 @@ public class MovieAppGUI extends Application {
     }
 
     // --- VIEW: Watchlist ---
-    private Node createWatchlistView() {
+    private Pane createWatchlistView() {
         BorderPane layout = createBaseLayout("My Watchlist", "Manage your watchlist.");
         Label statusLabel = (Label) layout.getBottom();
 
@@ -341,8 +341,8 @@ public class MovieAppGUI extends Application {
         return layout;
     }
 
-    // --- VIEW: History ---
-    private Node createHistoryView() {
+    // --- VIEW: History (Updated) ---
+    private Pane createHistoryView() {
         BorderPane layout = createBaseLayout("Watch History", "");
 
         globalHistoryListView = new ListView<>();
@@ -364,7 +364,12 @@ public class MovieAppGUI extends Application {
                         if (m != null) {
                             Label title = new Label("[" + m.getId() + "] " + m.getTitle());
                             title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
-                            Label details = new Label(String.format("Genre: %s | Rating: %.1f | Date: %s", m.getGenre(), m.getRating(), date));
+
+                            // [Updated]: Added Year and Rating
+                            Label details = new Label(String.format("Genre: %s | Year: %d | Rating: %.1f | Date: %s",
+                                    m.getGenre(), m.getYear(), m.getRating(), date));
+                            details.setTextFill(Color.web("#555555"));
+
                             infoBox.getChildren().addAll(title, details);
                         }
                     }
@@ -379,7 +384,8 @@ public class MovieAppGUI extends Application {
                         refreshHistoryData();
                     });
 
-                    HBox row = new HBox(10, infoBox, spacer, btnRemove);
+                    HBox row = new HBox(10);
+                    row.getChildren().addAll(infoBox, spacer, btnRemove);
                     row.setAlignment(Pos.CENTER_LEFT);
                     setGraphic(row);
                 }
@@ -404,15 +410,16 @@ public class MovieAppGUI extends Application {
             }
         });
 
-        HBox bottomBox = new HBox(10, btnClear, statusLabel);
+        HBox bottomBox = new HBox(10);
+        bottomBox.getChildren().addAll(btnClear, statusLabel);
         bottomBox.setPadding(new Insets(10));
         layout.setBottom(bottomBox);
 
         return layout;
     }
 
-    // --- VIEW: Recommendations ---
-    private Node createRecommendationsView() {
+    // --- VIEW: Recommendations (Updated) ---
+    private Pane createRecommendationsView() {
         BorderPane layout = new BorderPane();
         layout.setPadding(new Insets(15));
 
@@ -432,10 +439,12 @@ public class MovieAppGUI extends Application {
         Button addAllBtn = createStyledButton("Add All to Watchlist", "#27ae60");
         addAllBtn.setDisable(true);
 
-        HBox controls = new HBox(15, new Label("Weights:"), cbGenre, cbYear, cbRating, new Label("Count:"), numField, generateBtn, addAllBtn);
+        HBox controls = new HBox(15);
+        controls.getChildren().addAll(new Label("Weights:"), cbGenre, cbYear, cbRating, new Label("Count:"), numField, generateBtn, addAllBtn);
         controls.setAlignment(Pos.CENTER_LEFT);
 
-        VBox topBox = new VBox(10, header, controls);
+        VBox topBox = new VBox(10);
+        topBox.getChildren().addAll(header, controls);
         topBox.setPadding(new Insets(0, 0, 15, 0));
         layout.setTop(topBox);
 
@@ -501,12 +510,21 @@ public class MovieAppGUI extends Application {
                         }
                     });
 
-                    VBox info = new VBox(5,
-                            new Label("[" + item.movie.getId() + "] " + item.movie.getTitle()),
-                            new Label(String.format("Score: %.2f | Genre: %s", item.score * 10, item.movie.getGenre()))
+                    VBox info = new VBox(5);
+
+                    // [核心修改在这里]：为标题创建一个单独的 Label 并设置字体粗细
+                    Label titleLabel = new Label("[" + item.movie.getId() + "] " + item.movie.getTitle());
+                    titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
+
+                    info.getChildren().addAll(
+                            titleLabel,
+                            new Label(String.format("Score: %.2f | Genre: %s | Year: %d | Rating: %.1f",
+                                    item.score * 10, item.movie.getGenre(), item.movie.getYear(), item.movie.getRating()))
                     );
+
                     Region spacer = new Region(); HBox.setHgrow(spacer, Priority.ALWAYS);
-                    HBox row = new HBox(10, info, spacer, btnAdd);
+                    HBox row = new HBox(10);
+                    row.getChildren().addAll(info, spacer, btnAdd);
                     row.setAlignment(Pos.CENTER_LEFT);
                     setGraphic(row);
                 }
@@ -517,7 +535,7 @@ public class MovieAppGUI extends Application {
     }
 
     // --- VIEW: Change Password ---
-    private Node createChangePasswordView() {
+    private Pane createChangePasswordView() {
         VBox layout = new VBox(20);
         layout.setPadding(new Insets(30));
         layout.setAlignment(Pos.TOP_LEFT);
@@ -556,7 +574,7 @@ public class MovieAppGUI extends Application {
     }
 
     // ==========================================
-    //              HELPER METHODS (Refactoring)
+    //              HELPER METHODS
     // ==========================================
 
     private void handleLogout() {
