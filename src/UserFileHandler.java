@@ -1,16 +1,10 @@
 import java.io.*;
 import java.util.ArrayList;
 
-/**
- * UserFileHandler类 - 处理用户数据的文件读写
- */
+// Handle loading and saving user data to/from a CSV file
 public class UserFileHandler {
 
-    /**
-     * 从CSV文件加载用户数据
-     * @param filename 文件路径
-     * @return 用户列表
-     */
+    // Load all users from the given CSV file
     public ArrayList<User> loadUsers(String filename) {
         ArrayList<User> users = new ArrayList<>();
         BufferedReader br = null;
@@ -21,13 +15,14 @@ public class UserFileHandler {
             boolean isFirstLine = true;
 
             while ((line = br.readLine()) != null) {
-                // 跳过标题行
+
+                // Skip the header row
                 if (isFirstLine) {
                     isFirstLine = false;
                     continue;
                 }
 
-                // 处理空行
+                // Skip empty lines
                 if (line.trim().isEmpty()) {
                     continue;
                 }
@@ -35,11 +30,12 @@ public class UserFileHandler {
                 try {
                     String[] data = line.split(",");
 
+                    // Ensure username and password exist
                     if (data.length >= 2) {
                         String username = data[0].trim();
                         String password = data[1].trim();
 
-                        // 解析Watchlist（格式：M008;M015）
+                        // Parse watchlist field (e.g., M008;M015)
                         ArrayList<String> watchlist = new ArrayList<>();
                         if (data.length > 2 && !data[2].trim().isEmpty()) {
                             String[] watchIds = data[2].split(";");
@@ -48,7 +44,7 @@ public class UserFileHandler {
                             }
                         }
 
-                        // 解析History（格式：M001@2025-07-12;M011@2025-08-10）
+                        // Parse history field (e.g., M001@2025-07-12;M011@2025-08-10)
                         ArrayList<String> history = new ArrayList<>();
                         if (data.length > 3 && !data[3].trim().isEmpty()) {
                             String[] historyEntries = data[3].split(";");
@@ -57,10 +53,13 @@ public class UserFileHandler {
                             }
                         }
 
+                        // Create user object and add to list
                         User user = new User(username, password, watchlist, history);
                         users.add(user);
                     }
+
                 } catch (NumberFormatException e) {
+                    // Warn on invalid data
                     System.out.println("Warning: Invalid data format in line: " + line);
                 }
             }
@@ -72,6 +71,7 @@ public class UserFileHandler {
         } catch (IOException e) {
             System.out.println("Error reading users file: " + e.getMessage());
         } finally {
+            // Close the file reader
             if (br != null) {
                 try {
                     br.close();
@@ -84,22 +84,18 @@ public class UserFileHandler {
         return users;
     }
 
-    /**
-     * 保存用户数据到CSV文件
-     * @param filename 文件路径
-     * @param users 用户列表
-     */
+    // Save all user data back to the CSV file.
     public void saveUsers(String filename, ArrayList<User> users) {
         BufferedWriter bw = null;
 
         try {
             bw = new BufferedWriter(new FileWriter(filename));
 
-            // 写入标题行
+            // Write header row
             bw.write("Username,Password,Watchlist,History");
             bw.newLine();
 
-            // 写入每个用户的数据
+            // Write each user's data
             for (User user : users) {
                 StringBuilder line = new StringBuilder();
                 line.append(user.getUsername()).append(",");
@@ -116,6 +112,7 @@ public class UserFileHandler {
         } catch (IOException e) {
             System.out.println("Error saving users file: " + e.getMessage());
         } finally {
+            // Close writer
             if (bw != null) {
                 try {
                     bw.close();
@@ -126,11 +123,7 @@ public class UserFileHandler {
         }
     }
 
-    /**
-     * 将整数列表转换为字符串（用分号分隔）
-     * @param list 字符串列表
-     * @return 分号分隔的字符串
-     */
+    // Convert a list of strings into a semicolon-separated string.
     private String listToString(ArrayList<String> list) {
         if (list.isEmpty()) {
             return "";
@@ -146,12 +139,7 @@ public class UserFileHandler {
         return sb.toString();
     }
 
-    /**
-     * 根据用户名查找用户
-     * @param users 用户列表
-     * @param username 用户名
-     * @return 找到的用户，如果没找到返回null
-     */
+    // Search for a user in the list by username.
     public User findUserByUsername(ArrayList<User> users, String username) {
         for (User user : users) {
             if (user.getUsername().equals(username)) {

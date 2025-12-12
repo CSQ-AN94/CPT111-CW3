@@ -1,52 +1,51 @@
 import java.io.*;
 import java.util.ArrayList;
 
-/**
- * MovieFileHandler类 - 处理电影数据的文件读写
- */
+// Handle loading and searching movies from a CSV file
 public class MovieFileHandler {
 
-    /**
-     * 从CSV文件加载电影数据
-     * @param filename 文件路径
-     * @return 电影列表
-     */
+    // Load movie data from a CSV file and returns a list of Movie objects
+    // CSV format per line: ID,Title,Genre,Year,Rating
     public ArrayList<Movie> loadMovies(String filename) {
         ArrayList<Movie> movies = new ArrayList<>();
         BufferedReader br = null;
 
         try {
+            // Open the CSV file for reading
             br = new BufferedReader(new FileReader(filename));
             String line;
             boolean isFirstLine = true;
 
             while ((line = br.readLine()) != null) {
-                // 跳过标题行
+                // Skip the header (first line)
                 if (isFirstLine) {
                     isFirstLine = false;
                     continue;
                 }
 
-                // 处理空行
+                // Ignore empty lines
                 if (line.trim().isEmpty()) {
                     continue;
                 }
 
                 try {
-                    // 按逗号分割
+                    // Split CSV line by comma
                     String[] data = line.split(",");
 
                     if (data.length >= 5) {
-                        String id = data[0].trim();  // 改为String
+                        String id = data[0].trim();
                         String title = data[1].trim();
                         String genre = data[2].trim();
                         int year = Integer.parseInt(data[3].trim());
                         double rating = Double.parseDouble(data[4].trim());
 
+                        // Create a Movie object and add it to the list
                         Movie movie = new Movie(id, title, genre, year, rating);
                         movies.add(movie);
                     }
-                } catch (NumberFormatException e) {
+                }
+                // Handle invalid number format in year or rating
+                catch (NumberFormatException e) {
                     System.out.println("Warning: Invalid data format in line: " + line);
                 }
             }
@@ -54,11 +53,13 @@ public class MovieFileHandler {
             System.out.println("Successfully loaded " + movies.size() + " movies.");
 
         } catch (FileNotFoundException e) {
+            // File not found error
             System.out.println("Error: Movies file not found - " + filename);
         } catch (IOException e) {
+            // General reading error
             System.out.println("Error reading movies file: " + e.getMessage());
         } finally {
-            // 关闭文件流
+            // Close file stream safely
             if (br != null) {
                 try {
                     br.close();
@@ -71,12 +72,8 @@ public class MovieFileHandler {
         return movies;
     }
 
-    /**
-     * 根据ID查找电影
-     * @param movies 电影列表
-     * @param id 电影ID
-     * @return 找到的电影，如果没找到返回null
-     */
+    // Search for a movie in the list by its ID
+    // Return the matching Movie object or null if not found
     public Movie findMovieById(ArrayList<Movie> movies, String id) {
         for (Movie movie : movies) {
             if (movie.getId().equals(id)) {

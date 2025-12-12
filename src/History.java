@@ -1,31 +1,24 @@
 import java.util.ArrayList;
 
-/**
- * History类 - 封装观看历史的逻辑
- * 符合 Spec 要求：必须实现 History 类
- */
+// Manages movie watch history entries
 public class History {
-    private ArrayList<String> entries; // 存储格式: "ID@Date"
+    private ArrayList<String> entries;
 
-    // 默认构造函数
+    // Create an empty history list
     public History() {
         this.entries = new ArrayList<>();
     }
 
-    // 从已有列表初始化的构造函数
+    // Create a history list from an existing set of entries
     public History(ArrayList<String> existingEntries) {
-        this.entries = existingEntries != null ? existingEntries : new ArrayList<>();
+        if(existingEntries != null)  this.entries=existingEntries;
+        else this.entries = new ArrayList<>();
     }
 
-    /**
-     * 添加观看记录
-     * @param movieId 电影ID
-     * @param date 日期字符串
-     */
+    // Add a new watch entry if the same movie was not recorded on the same date
     public void add(String movieId, String date) {
         String historyEntry = movieId + "@" + date;
 
-        // 逻辑迁移：检查今天是否重复添加
         boolean existsToday = false;
         for (String entry : entries) {
             if (entry.equals(historyEntry)) {
@@ -34,23 +27,18 @@ public class History {
             }
         }
 
+        // Add entry only if it does not already exist for that date
         if (!existsToday) {
             entries.add(historyEntry);
         }
     }
 
-    /**
-     * 获取完整的历史记录字符串列表 (ID@Date)
-     * 用于文件保存和带日期的显示
-     */
+    // Return the full list of history entries, including dates
     public ArrayList<String> getEntries() {
         return entries;
     }
 
-    /**
-     * 只获取看过的电影ID（不含日期）
-     * 用于推荐算法去重
-     */
+    // Return only movie IDs from history (dates removed)
     public ArrayList<String> getWatchedMovieIds() {
         ArrayList<String> movieIds = new ArrayList<>();
         for (String entry : entries) {
@@ -62,6 +50,7 @@ public class History {
         return movieIds;
     }
 
+    // Return the number of history records
     public int size() {
         return entries.size();
     }
