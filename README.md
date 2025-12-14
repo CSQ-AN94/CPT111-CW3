@@ -48,5 +48,8 @@ Project Root
 - [x] Hash users’ passwords before saving to CSV
 
 ## Notes
-If the program cannot locate the CSV files, please check that the working directory
+1. If the program cannot locate the CSV files, please check that the working directory
 is set to the project root and that the `data/` folder exists at the same level as `src/`.
+2.  Usernames and initial user records follow the original CSV file provided
+    for the coursework, while passwords in `users.csv` are stored as hashed values
+    as part of the password hashing advanced feature.
