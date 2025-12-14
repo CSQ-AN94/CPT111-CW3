@@ -5,11 +5,11 @@ import java.util.Collections;
 import java.util.Comparator;
 
 /**
-  Recommendation Engine - Dynamic Weight-Based Recommendations Using User Behavior Statistics
+ Recommendation Engine - Dynamic Weight-Based Recommendations Using User Behavior Statistics
 
-  This class provides movie recommendations by analyzing the history and preferences of the user.
-  It supports configurable recommendation strategies through strategy switches (genre, year, rating).
-  The algorithm dynamically adjusts weights based on user behavior patterns.
+ This class provides movie recommendations by analyzing the history and preferences of the user
+ It supports configurable recommendation strategies through strategy switches (genre, year, rating)
+ The algorithm dynamically adjusts weights based on user behavior patterns
  */
 public class RecommendationEngine {
     // List of all available movies in the system
@@ -24,7 +24,7 @@ public class RecommendationEngine {
      * Get movie recommendations for a user (Core Method)
      * This method calculates personalized recommendations based on user's viewing history,
      * watchlist, and configurable strategy parameters. It uses dynamic weighting to balance
-     * genre preference, year preference, and rating preference.
+     * genre preference, year preference, and rating preference
      * @return List of MovieScore objects sorted by recommendation score (highest first)
      */
     public ArrayList<MovieScore> getRecommendations(User user, int n, boolean useGenre, boolean useYear, boolean useRating) {
@@ -109,8 +109,8 @@ public class RecommendationEngine {
 
     /**
      * Calculate dynamic weights based on user behavior diversity
-     * Uses exponential scaling to emphasize concentrated preferences.
-     * Higher concentration in a dimension results in higher weight for that dimension.
+     * Uses exponential scaling to emphasize concentrated preferences
+     * Higher concentration in a dimension results in higher weight for that dimension
      *
      * @param genreConc Genre concentration (HHI index, 0-1)
      * @param yearVar Variance in year preferences
@@ -166,7 +166,7 @@ public class RecommendationEngine {
      * Calculate genre concentration using Herfindahl-Hirschman Index (HHI)
      *
      * HHI measures market concentration. Higher values indicate stronger preference
-     * for specific genres. Range: 0 (perfectly diverse) to 1 (single genre only).
+     * for specific genres. Range: 0 (perfectly diverse) to 1 (single genre only)
      *
      * @param ids Set of movie IDs from user's viewing history
      * @return HHI value (0-1)
@@ -278,10 +278,9 @@ public class RecommendationEngine {
 
     /**
      * Fallback recommendation method for users with no viewing history
-     *
-     * Returns top-rated movies with randomization to ensure variety.
+     * Returns top-rated movies with randomization to ensure variety
      * Creates a candidate pool of high-quality movies, shuffles them,
-     * and returns a random subset.
+     * and returns a random subset
      *
      * @return List of MovieScore objects for top-rated movies
      */
@@ -333,8 +332,8 @@ public class RecommendationEngine {
 
     /**
      * Inner Class: MovieScore
-     * Represents a movie with its calculated recommendation score.
-     * Must be public static to be accessible from outside classes (e.g., Main).
+     * Represents a movie with its calculated recommendation score
+     * Must be public static to be accessible from outside classes (e.g., Main)
      */
     public static class MovieScore {
         public Movie movie;

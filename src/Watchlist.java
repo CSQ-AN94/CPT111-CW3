@@ -27,11 +27,6 @@ public class Watchlist {
         movieIds.remove(movieId);
     }
 
-    // Check whether the watchlist contains a specific movie ID
-    public boolean contains(String movieId) {
-        return movieIds.contains(movieId);
-    }
-
     // Return the raw list of movie IDs
     public ArrayList<String> getMovieIds() {
         return movieIds;

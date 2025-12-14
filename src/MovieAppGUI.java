@@ -12,90 +12,72 @@ import javafx.stage.Stage;
 import java.util.*;
 
 /**
- * MovieAppGUI - Final Polish
- * * <p>This class serves as the main entry point and Graphical User Interface (GUI)
+ * This class serves as the main entry point and GUI
  * for the Movie Recommendation System. It manages the application lifecycle,
- * user authentication (Login/Register), and the main dashboard views.</p>
- * * <p>Key Features included:</p>
- * <ul>
- * <li>Full movie details (Year, Rating) in History and Recommendations views.</li>
- * <li>Bold titles for movies in the Recommendations list.</li>
- * <li>Strict adherence to import constraints.</li>
- * </ul>
+ * user authentication (Login/Register), and the main dashboard views
  */
 public class MovieAppGUI extends Application {
-    // --- File Paths ---
-    /** Path to the CSV file containing movie data. */
+
+    // File paths
     private static final String MOVIES_FILE = "data/movies.csv";
-    /** Path to the CSV file containing user credentials and data. */
     private static final String USERS_FILE = "data/users.csv";
 
-    // --- Data Objects ---
-    /** List containing all movie objects loaded from file. */
+    // List containing all movie objects loaded from file
     private ArrayList<Movie> allMovies;
-    /** List containing all user objects loaded from file. */
+    // List containing all user objects loaded from file
     private ArrayList<User> allUsers;
-    /** The currently logged-in user. */
     private User currentUser;
 
-    // --- Helpers ---
-    /** Helper class for reading and parsing movie data. */
+    // Helpers for reading and parsing data
     private final MovieFileHandler movieHandler = new MovieFileHandler();
-    /** Helper class for reading and writing user data. */
     private final UserFileHandler userHandler = new UserFileHandler();
 
-    // --- UI Components ---
+    // UI components
     private Stage primaryStage;
     private Scene loginScene;
     private Scene registerScene;
     private BorderPane mainLayout;
 
-    // --- UI Lists ---
+    // UI lists
     private ListView<Movie> globalMovieListView;
     private ListView<Movie> globalWatchlistView;
     private ListView<String> globalHistoryListView;
     private ListView<RecommendationEngine.MovieScore> globalRecListView;
 
-    // --- Constants ---
+    // Constants
     private static final double WINDOW_WIDTH = 1100;
     private static final double WINDOW_HEIGHT = 700;
 
-    /**
-     * The main entry point for the Java application.
-     * * @param args Command line arguments.
-     */
+    // Entry point
     public static void main(String[] args) {
         launch(args);
     }
 
     /**
-     * Starts the JavaFX application.
-     * <p>
+     * Starts the JavaFX application
      * This method initializes the data, builds the initial scenes (Login/Register),
      * and sets up the primary stage properties. It also configures the close request
-     * to ensure user data is saved before exiting.
-     * </p>
-     * * @param primaryStage The primary window of the application.
+     * to ensure user data is saved before exiting
      */
     @Override
     public void start(Stage primaryStage) {
         this.primaryStage = primaryStage;
 
-        // 1. Load Data
+        // Load data
         allMovies = movieHandler.loadMovies(MOVIES_FILE);
         allUsers = userHandler.loadUsers(USERS_FILE);
 
-        // 2. Initialize Scenes
+        // Initialize scenes
         this.loginScene = buildLoginScene();
         this.registerScene = buildRegisterScene();
 
-        // 3. Setup Stage
+        // Setup stage
         primaryStage.setTitle("Movie Recommendation System");
         primaryStage.setScene(loginScene);
         primaryStage.setMinWidth(WINDOW_WIDTH);
         primaryStage.setMinHeight(WINDOW_HEIGHT);
 
-        // 4. Save on Close
+        // Save on close
         primaryStage.setOnCloseRequest(e -> {
             if (allUsers != null) {
                 userHandler.saveUsers(USERS_FILE, allUsers);
@@ -105,17 +87,10 @@ public class MovieAppGUI extends Application {
         primaryStage.show();
     }
 
-    // ==========================================
-    //              SCENE 1: LOGIN
-    // ==========================================
-
     /**
-     * Constructs the Login Scene.
-     * <p>
+     * Login Scene
      * Creates the user interface for authentication, including fields for username
-     * and password, and buttons to toggle between login and registration.
-     * </p>
-     * * @return The constructed Scene object for the login view.
+     * and password, and buttons to toggle between login and registration
      */
     private Scene buildLoginScene() {
         Label titleLabel = new Label("Movie Recommendation System");
@@ -142,7 +117,7 @@ public class MovieAppGUI extends Application {
         buttonBox.getChildren().addAll(loginButton, registerButton);
         buttonBox.setAlignment(Pos.CENTER);
 
-        // Event Handling
+        // Event handling
         loginButton.setOnAction(e -> {
             String u = userField.getText().trim();
             String p = passField.getText().trim();
@@ -178,17 +153,10 @@ public class MovieAppGUI extends Application {
         return new Scene(layout, WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
-    // ==========================================
-    //              SCENE 2: REGISTER
-    // ==========================================
-
     /**
-     * Constructs the Registration Scene.
-     * <p>
+     * Registration Scene
      * Allows new users to create an account by validating input (matching passwords,
-     * unique username check) and saving the new user to the list.
-     * </p>
-     * * @return The constructed Scene object for the registration view.
+     * unique username check) and saving the new user to the list
      */
     private Scene buildRegisterScene() {
         Label headerLabel = new Label("Create New Account");
@@ -255,16 +223,11 @@ public class MovieAppGUI extends Application {
         return new Scene(new StackPane(form), WINDOW_WIDTH, WINDOW_HEIGHT);
     }
 
-    // ==========================================
-    //              SCENE 3: MAIN APP
-    // ==========================================
-
     /**
-     * Transitions the application state to the Main Dashboard.
-     * <p>
+     * Main App Scene
+     * Transitions the application state to the Main Dashboard
      * Initializes the main layout with a sidebar and a default center view (All Movies),
-     * and sets the scene to the primary stage.
-     * </p>
+     * and sets the scene to the primary stage
      */
     private void enterMainApp() {
         mainLayout = new BorderPane();
@@ -277,12 +240,9 @@ public class MovieAppGUI extends Application {
     }
 
     /**
-     * Creates the navigation sidebar.
-     * <p>
+     * Creates the navigation sidebar
      * Contains buttons for navigating between different views (All Movies, Watchlist,
-     * History, Recommendations) and system actions (Change Password, Logout).
-     * </p>
-     * * @return A VBox containing the configured sidebar UI.
+     * History, Recommendations) and system actions (Change Password, Logout)
      */
     private VBox createSidebar() {
         VBox sidebar = new VBox(5);
@@ -295,7 +255,7 @@ public class MovieAppGUI extends Application {
         welcomeLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
         welcomeLabel.setPadding(new Insets(0, 0, 20, 10));
 
-        // Navigation Buttons
+        // Navigation buttons
         Button btnAllMovies = createSidebarButton("All Movies");
         Button btnWatchlist = createSidebarButton("Watchlist");
         Button btnHistory = createSidebarButton("History");
@@ -303,7 +263,7 @@ public class MovieAppGUI extends Application {
         Button btnChangePass = createSidebarButton("Change Password");
         Button btnLogout = createSidebarButton("Logout");
 
-        // Set Actions
+        // Set actions
         btnAllMovies.setOnAction(e -> mainLayout.setCenter(createAllMoviesView()));
         btnWatchlist.setOnAction(e -> mainLayout.setCenter(createWatchlistView()));
         btnHistory.setOnAction(e -> mainLayout.setCenter(createHistoryView()));
@@ -318,14 +278,10 @@ public class MovieAppGUI extends Application {
         return sidebar;
     }
 
-    // --- VIEW: All Movies ---
     /**
-     * Creates the "All Movies" repository view.
-     * <p>
-     * Displays a list of all available movies loaded from the CSV. Users can add
-     * movies to their watchlist or mark them as watched directly from this list.
-     * </p>
-     * * @return A Pane object representing the All Movies view.
+     * View: All Movies
+     * Displays a list of all available movies loaded from the CSV
+     * Users can add movies to their watchlist or mark them as watched directly from this list
      */
     private Pane createAllMoviesView() {
         BorderPane layout = createBaseLayout("All Movies Repository", "Select actions from the list below.");
@@ -368,14 +324,10 @@ public class MovieAppGUI extends Application {
         return layout;
     }
 
-    // --- VIEW: Watchlist ---
     /**
-     * Creates the "Watchlist" view.
-     * <p>
-     * Displays movies that the user has saved for later. Allows removing items or
-     * marking them as watched (which moves them to history).
-     * </p>
-     * * @return A Pane object representing the Watchlist view.
+     * View: Watchlist
+     * Displays movies that the user has saved for later
+     * Allows removing items or marking them as watched
      */
     private Pane createWatchlistView() {
         BorderPane layout = createBaseLayout("My Watchlist", "Manage your watchlist.");
@@ -416,14 +368,10 @@ public class MovieAppGUI extends Application {
         return layout;
     }
 
-    // --- VIEW: History (Updated) ---
     /**
-     * Creates the "Watch History" view.
-     * <p>
-     * Displays a log of movies the user has marked as watched. Each entry includes
-     * extended details such as Genre, Year, Rating, and the Date watched.
-     * </p>
-     * * @return A Pane object representing the History view.
+     * View: Watch History
+     * Displays all movies the user has marked as watched
+     * Each entry includes extended details such as Genre, Year, Rating, and the Date watched
      */
     private Pane createHistoryView() {
         BorderPane layout = createBaseLayout("Watch History", "");
@@ -448,7 +396,6 @@ public class MovieAppGUI extends Application {
                             Label title = new Label("[" + m.getId() + "] " + m.getTitle());
                             title.setFont(Font.font("Arial", FontWeight.BOLD, 16));
 
-                            // [Updated]: Added Year and Rating
                             Label details = new Label(String.format("Genre: %s | Year: %d | Rating: %.1f | Date: %s",
                                     m.getGenre(), m.getYear(), m.getRating(), date));
                             details.setTextFill(Color.web("#555555"));
@@ -477,7 +424,6 @@ public class MovieAppGUI extends Application {
 
         layout.setCenter(globalHistoryListView);
 
-        // Clear History Button
         Button btnClear = createStyledButton("Clear All History", "#c0392b");
         Label statusLabel = new Label();
         statusLabel.setPadding(new Insets(0,0,0,10));
@@ -501,20 +447,16 @@ public class MovieAppGUI extends Application {
         return layout;
     }
 
-    // --- VIEW: Recommendations (Updated) ---
     /**
-     * Creates the "Recommendations" view.
-     * <p>
-     * Allows the user to configure preferences (Genre, Year, Rating) and generate
-     * a list of movie recommendations. The results include bold titles and comprehensive details.
-     * </p>
-     * * @return A Pane object representing the Recommendation engine view.
+     * View: Recommendations
+     * Allows the user to configure preferences (Genre, Year, Rating)
+     * and generate a list of movie recommendations
      */
     private Pane createRecommendationsView() {
         BorderPane layout = new BorderPane();
         layout.setPadding(new Insets(15));
 
-        // Top Controls
+        // Top controls
         Label header = new Label("Get Recommendations");
         header.setFont(Font.font("Arial", FontWeight.BOLD, 22));
 
@@ -582,7 +524,7 @@ public class MovieAppGUI extends Application {
             updateStatus(statusLabel, "Added " + count + " movies to watchlist.", Color.GREEN);
         });
 
-        // Cell Factory for Recommendations
+        // Cell factory for recommendations
         globalRecListView.setCellFactory(param -> new ListCell<RecommendationEngine.MovieScore>() {
             @Override
             protected void updateItem(RecommendationEngine.MovieScore item, boolean empty) {
@@ -603,7 +545,6 @@ public class MovieAppGUI extends Application {
 
                     VBox info = new VBox(5);
 
-                    // [核心修改在这里]：为标题创建一个单独的 Label 并设置字体粗细
                     Label titleLabel = new Label("[" + item.movie.getId() + "] " + item.movie.getTitle());
                     titleLabel.setFont(Font.font("Arial", FontWeight.BOLD, 16));
 
@@ -625,14 +566,10 @@ public class MovieAppGUI extends Application {
         return layout;
     }
 
-    // --- VIEW: Change Password ---
     /**
-     * Creates the "Change Password" view.
-     * <p>
-     * Provides a form for the user to update their password. Includes validation for
-     * the old password and matching new password confirmation.
-     * </p>
-     * * @return A Pane object representing the Password Change view.
+     * View: Change Password
+     * Provides a form for the user to update their password
+     * Includes validation for the old password and matching new password confirmation
      */
     private Pane createChangePasswordView() {
         VBox layout = new VBox(20);
@@ -672,17 +609,7 @@ public class MovieAppGUI extends Application {
         return layout;
     }
 
-    // ==========================================
-    //              HELPER METHODS
-    // ==========================================
-
-    /**
-     * Handles the logout process.
-     * <p>
-     * Saves the current user data to file, clears the current user session,
-     * and redirects to the login scene.
-     * </p>
-     */
+    // Logout
     private void handleLogout() {
         userHandler.saveUsers(USERS_FILE, allUsers);
         currentUser = null;
@@ -690,15 +617,7 @@ public class MovieAppGUI extends Application {
         primaryStage.setTitle("Movie Recommendation System");
     }
 
-    /**
-     * Core logic for marking a movie as "Watched".
-     * <p>
-     * Adds the movie to the user's history with the current date, removes it from
-     * the watchlist if present, and saves the updated state.
-     * </p>
-     * * @param movie The movie object to mark as watched.
-     * @param statusLabel The UI label to update with the success message.
-     */
+    // Mark movie as watched
     private void handleMarkWatchedLogic(Movie movie, Label statusLabel) {
         String today = java.time.LocalDate.now().toString();
         currentUser.addToHistory(movie.getId(), today);
@@ -709,13 +628,7 @@ public class MovieAppGUI extends Application {
         updateStatus(statusLabel, "Watched: " + movie.getTitle(), Color.GREEN);
     }
 
-    /**
-     * Refreshes the Watchlist UI.
-     * <p>
-     * Re-populates the watchlist view by fetching movie details based on the
-     * IDs stored in the current user's watchlist.
-     * </p>
-     */
+    // Refresh watchlist UI
     private void refreshWatchlistData() {
         if (globalWatchlistView == null || currentUser == null) return;
         ArrayList<Movie> list = new ArrayList<>();
@@ -726,13 +639,7 @@ public class MovieAppGUI extends Application {
         globalWatchlistView.setItems(FXCollections.observableArrayList(list));
     }
 
-    /**
-     * Refreshes the History UI.
-     * <p>
-     * Reloads the history list from the user's data and reverses it to show
-     * the most recent items first.
-     * </p>
-     */
+    // Refresh history UI
     private void refreshHistoryData() {
         if (globalHistoryListView == null || currentUser == null) return;
         ArrayList<String> history = new ArrayList<>(currentUser.getHistory());
@@ -740,14 +647,8 @@ public class MovieAppGUI extends Application {
         globalHistoryListView.setItems(FXCollections.observableArrayList(history));
     }
 
-    // --- UI Component Helpers (Factory Methods) ---
-
-    /**
-     * Creates a standard layout structure for the main content views.
-     * * @param title The title to display at the top of the view.
-     * @param initialStatus The initial text for the status bar at the bottom.
-     * @return A BorderPane configured with a header and status bar.
-     */
+    // UI component helpers
+    // Create a base layout with a header and status label
     private BorderPane createBaseLayout(String title, String initialStatus) {
         BorderPane layout = new BorderPane();
         layout.setPadding(new Insets(15));
@@ -760,16 +661,7 @@ public class MovieAppGUI extends Application {
         return layout;
     }
 
-    /**
-     * Creates a standardized row for displaying a movie in a list.
-     * <p>
-     * The row includes the movie title (bold), genre, year, rating, and any
-     * action buttons passed as arguments.
-     * </p>
-     * * @param movie The movie data to display.
-     * @param actions Variable number of Buttons to display on the right side of the row.
-     * @return An HBox containing the formatted movie row.
-     */
+    // Create a row for a movie with actions
     private HBox createMovieRow(Movie movie, Button... actions) {
         VBox infoBox = new VBox(5);
         Label titleLbl = new Label("[" + movie.getId() + "] " + movie.getTitle());
@@ -790,11 +682,7 @@ public class MovieAppGUI extends Application {
         return row;
     }
 
-    /**
-     * Creates a styled button for the sidebar navigation.
-     * * @param text The label text for the button.
-     * @return A styled Button suitable for the sidebar.
-     */
+    // Create buttons with a custom style
     private Button createSidebarButton(String text) {
         Button btn = new Button(text);
         btn.setMaxWidth(Double.MAX_VALUE);
@@ -807,12 +695,6 @@ public class MovieAppGUI extends Application {
         return btn;
     }
 
-    /**
-     * Creates a general styled button with a specific background color.
-     * * @param text The button label.
-     * @param colorHex The hex color code for the background.
-     * @return A styled Button object.
-     */
     private Button createStyledButton(String text, String colorHex) {
         Button btn = new Button(text);
         btn.setPrefWidth(140);
@@ -820,12 +702,6 @@ public class MovieAppGUI extends Application {
         return btn;
     }
 
-    /**
-     * Creates a smaller styled button, typically used inside list items.
-     * * @param text The button label.
-     * @param colorHex The hex color code for the background.
-     * @return A small styled Button object.
-     */
     private Button createSmallButton(String text, String colorHex) {
         Button btn = new Button(text);
         btn.setStyle(String.format("-fx-background-color: %s; -fx-text-fill: white; -fx-font-size: 11px;", colorHex));
@@ -833,22 +709,13 @@ public class MovieAppGUI extends Application {
         return btn;
     }
 
-    /**
-     * Updates a status label with text and color.
-     * * @param label The label to update.
-     * @param text The new message text.
-     * @param color The color of the text.
-     */
+    // Update status label
     private void updateStatus(Label label, String text, Color color) {
         label.setText(text);
         label.setTextFill(color);
     }
 
-    /**
-     * Creates a composite UI component containing a PasswordField and a toggle button to show/hide text.
-     * * @param passField The original PasswordField component.
-     * @return A StackPane containing the PasswordField and the visibility toggle logic.
-     */
+    // Create a composite UI component containing a PasswordField and a toggle button to show/hide text
     private StackPane createPasswordWithEye(PasswordField passField) {
         TextField textField = new TextField();
         textField.textProperty().bindBidirectional(passField.textProperty());

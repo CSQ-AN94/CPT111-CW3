@@ -84,7 +84,7 @@ public class UserFileHandler {
         return users;
     }
 
-    // Save all user data back to the CSV file.
+    // Save all user data back to the CSV file
     public void saveUsers(String filename, ArrayList<User> users) {
         BufferedWriter bw = null;
 
@@ -123,7 +123,7 @@ public class UserFileHandler {
         }
     }
 
-    // Convert a list of strings into a semicolon-separated string.
+    // Convert a list of strings into a semicolon-separated string
     private String listToString(ArrayList<String> list) {
         if (list.isEmpty()) {
             return "";
@@ -139,7 +139,7 @@ public class UserFileHandler {
         return sb.toString();
     }
 
-    // Search for a user in the list by username.
+    // Search for a user in the list by username
     public User findUserByUsername(ArrayList<User> users, String username) {
         for (User user : users) {
             if (user.getUsername().equals(username)) {

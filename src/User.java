@@ -34,7 +34,7 @@ public class User {
     public String getPassword() {
         // When saving to the CSV file:
         // If the password is still in plain text (legacy data),
-        // it will be automatically converted into a hashed form.
+        // it will be automatically converted into a hashed form
         if (password == null) return "";
         if (password.startsWith(HASH_PREFIX)) return password;
         return hashWithPrefix(username, password);
@@ -55,11 +55,6 @@ public class User {
         return history.getWatchedMovieIds();
     }
 
-    // Change the password
-//    public void setPassword(String password) {
-//        this.password = password;
-//    }
-
     // Add a movie to the watchlist
     public void addToWatchlist(String movieId) {
         watchlist.add(movieId);
@@ -78,16 +73,11 @@ public class User {
     // Check if password matches the stored one
     public boolean verifyPassword(String inputPassword) {
         if (password == null) return inputPassword == null;
-
         // If the stored password is already hashed,
-        // hash the user input and compare the two hash values.
+        // hash the user input and compare the two hash values
         if (password.startsWith(HASH_PREFIX)) {
             return password.equals(hashWithPrefix(username, inputPassword));
         }
-
-        // Backward compatibility:
-        // Allows login using legacy plain-text passwords
-        // before they are automatically upgraded to hashed form.
         return password.equals(inputPassword);
     }
 
@@ -98,27 +88,24 @@ public class User {
                 " movies | History: " + history.size() + " movies";
     }
 
-    // ---------------- Password hashing helpers (no extra imports required) ----------------
+    // Password hashing helpers
+    // A constant "pepper" used to slightly strengthen hashing
     private static final String HASH_PREFIX = "h$";
     private static final String PEPPER = "CPT111_CW3";
-// A constant "pepper" used to slightly strengthen hashing.
-// It is hard-coded and is NOT stored in the CSV file.
 
-    // This method is required because MovieAppGUI calls currentUser.setPassword(...)
+    // Change the password
     public void setPassword(String newPassword) {
         this.password = hashWithPrefix(username, newPassword);
     }
 
+    // Hash a password with a prefix
     private String hashWithPrefix(String user, String raw) {
         if (raw == null) raw = "";
         if (user == null) user = "";
         return HASH_PREFIX + fnv1aHex(user + ":" + raw + ":" + PEPPER);
     }
 
-    // FNV-1a 64-bit hash function.
-// This is NOT reversible encryption, but one-way hashing.
-// It demonstrates that passwords are not stored in plain text
-// and does not require any additional Java libraries.
+    // FNV-1a hash function
     private String fnv1aHex(String s) {
         long hash = 0xcbf29ce484222325L;
         long prime = 0x100000001b3L;
