@@ -30,11 +30,6 @@ Project Root
 ## Requirements
 - Java JDK 21 (or later)
 
-## How to Run
-1. Unzip the submission and open the project folder.
-2. Ensure the `data/` folder is located in the project root directory (same level as `src/`).
-3. Run the main entry class (e.g., `Main.java`) from your IDE or command line.
-4. The program loads CSV files using relative paths under `data/`.
 
 ## Data Files
 - `data/movies.csv`: movie library (ID, Title, Genre, Year, Rating)
